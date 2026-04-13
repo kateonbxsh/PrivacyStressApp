@@ -781,7 +781,7 @@ body {
     margin-top: 4px;
 }
 
-.nm-admin-badge {
+.nm-admin-badge .nm-admin-live-badge{
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -824,19 +824,6 @@ body {
 
 .nm-admin-toolbar-spacer {
     flex: 1 1 auto;
-}
-
-.nm-admin-live-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: #F5FAF7;
-    border: 1px solid #E6F2EA;
-    color: #0B6E53;
-    border-radius: 999px;
-    padding: 8px 14px;
-    font-size: 0.84rem;
-    font-weight: 600;
 }
 
 .q-card {
