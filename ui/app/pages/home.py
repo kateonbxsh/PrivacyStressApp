@@ -1,11 +1,17 @@
 from nicegui import app, ui
 
 from app.components.layout import app_shell, bottom_nav, screen_container
-from app.core.session import get_current_user, has_any_role
 from app.guards.auth_guard import require_auth
 from app.services.checkin_service import map_prediction_to_home_state
 from app.services.mock_data import current_state
+from app.core.roles import USER_ROLE
 from app.theme import register_theme
+from app.core.session import (
+    get_current_role,
+    get_current_user,
+    has_any_role,
+    has_completed_onboarding,
+)
 
 
 def level_chip(level: str) -> tuple[str, str]:
@@ -30,6 +36,10 @@ def home_page() -> None:
     if not require_auth():
         return
 
+    if get_current_role() == USER_ROLE and not has_completed_onboarding():
+        ui.navigate.to('/onboarding')
+        return
+    
     user = get_current_user() or {}
     prediction = app.storage.user.get('last_prediction')
     last_checkin = app.storage.user.get('last_checkin')

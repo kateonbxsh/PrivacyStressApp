@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from nicegui import app, ui
 
-from app.pages import home, activity, settings, help_page, login, form_page, admin_panel  # noqa: F401
+from app.pages import home, activity, settings, help_page, login, form_page, admin_panel, onboarding  # noqa: F401
 
 api_router = APIRouter(prefix='/api')
 

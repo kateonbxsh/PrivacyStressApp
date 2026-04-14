@@ -1,6 +1,7 @@
 from nicegui import ui
 
-from app.core.session import is_auth
+from app.core.roles import USER_ROLE
+from app.core.session import is_auth, get_current_role, has_completed_onboarding
 from app.services.api_client import APIError
 from app.services.auth_service import login
 from app.theme import register_theme
@@ -90,7 +91,12 @@ def login_page() -> None:
                         try:
                             await login(email.value.strip(), password.value)
                             ui.notify('Connexion réussie', color='positive')
-                            ui.navigate.to('/')
+                            
+                            if get_current_role() == USER_ROLE and not has_completed_onboarding():
+                                ui.navigate.to('/onboarding')
+                            else:
+                                ui.navigate.to('/')
+
                         except APIError as e:
                             ui.notify(getattr(e, 'message', 'Authentication failed'), color='negative')
                         finally:

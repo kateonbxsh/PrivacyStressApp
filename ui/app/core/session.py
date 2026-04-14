@@ -33,3 +33,16 @@ def has_any_role(*roles: str) -> bool:
     current_role = get_current_role()
     normalized_roles = [normalize_role(role) for role in roles]
     return current_role in normalized_roles
+
+def has_completed_onboarding() -> bool:
+    return bool(app.storage.user.get('onboarding_completed',False))
+
+def set_onboarding_completed(value: bool = True) -> None:
+    app.storage.user['onboarding_completed'] = value
+
+def get_onboarding_profile() -> dict:
+    profile = app.storage.user.get('onboarding_profile', {})
+    return profile if isinstance(profile, dict) else {}
+
+def set_onboarding_profile(profile: dict) -> None:
+    app.storage.user['onboarding_profile'] = profile

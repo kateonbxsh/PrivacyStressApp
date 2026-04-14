@@ -4,6 +4,8 @@ from app.components.layout import app_shell, bottom_nav, screen_container
 from app.guards.auth_guard import require_auth
 from app.services.auth_service import logout
 from app.services.mock_data import settings_state
+from app.core.roles import USER_ROLE
+from app.core.session import get_current_role
 from app.theme import register_theme
 
 
@@ -88,6 +90,12 @@ def settings_page() -> None:
                         ui.link('Privacy Policy', '#').classes('text-primary text-xl no-underline font-medium')
                         ui.icon('open_in_new').classes('text-primary')
 
+        if get_current_role() == USER_ROLE:
+            ui.button(
+                'Edit onboarding',
+                on_click=lambda: ui.navigate.to('/onboarding')
+            ).props('outline no-caps icon=tune').classes('w-full lg:w-[240px] mt-4')
+            
         ui.button(
             'Se déconnecter',
             on_click=handle_logout,
