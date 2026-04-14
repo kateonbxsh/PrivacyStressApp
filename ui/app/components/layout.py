@@ -18,7 +18,6 @@ def app_shell(active: str, title: str = 'NeuroMove', show_device_badge: bool = T
                 ui.icon('lens_blur').classes('text-[10px]')
                 ui.label('On Device')
 
-
 def screen_container() -> ui.column:
     return ui.column().classes('nm-shell nm-container gap-0 w-full')
 

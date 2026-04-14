@@ -7,6 +7,7 @@ from app.components.layout import app_shell, bottom_nav, screen_container
 from app.guards.auth_guard import require_auth
 from app.services.activity_service import add_activity_entry
 from app.services.checkin_service import build_mock_prediction
+from app.services.admin_analytics_service import register_admin_event
 from app.theme import register_theme
 
 
@@ -138,7 +139,10 @@ def checkin_page() -> None:
 
         prediction = build_mock_prediction(payload)
         app.storage.user['last_prediction'] = prediction
+        # user-scoped activity history (UI/session cache)
         add_activity_entry(payload, prediction)
+        # shared admin analytics cache (simulates backend/external DB aggregation)
+        register_admin_event(payload, prediction)
 
         loading_dialog.close()
         ui.notify('Check-in analyzed successfully', color='positive')
