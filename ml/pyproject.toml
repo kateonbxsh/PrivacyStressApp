@@ -1,0 +1,56 @@
+[project]
+name = "federated-server"
+version = "0.1.0"
+description = "Federated learning server for PIR"
+requires-python = ">=3.12,<3.14"
+license = "MIT"
+authors = [
+  { name = "Yahya MISBAHI", email = "yahya.misbahi@innovx.ma" }
+]
+
+[tool.poetry]
+name = "federated-server"
+version = "0.1.0"
+description = "Federated learning server for PIR"
+authors = ["Yahya MISBAHI <yahya.misbahi@innovx.ma>"]
+license = "MIT"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.12,<3.14"
+flwr = { version = ">=1.27.0,<2.0.0", extras = ["simulation"] }
+torch = ">=2.8.0,<3.0.0"
+numpy = ">=2.3.3,<3.0.0"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.flwr.app]
+publisher = "Yatsu25"
+
+[tool.flwr.app.components]
+serverapp = "app.server_app:app"
+clientapp = "app.client_app:app"
+
+
+#######################################################################
+# CONFIGURATION MIGRATION NOTICE:
+#
+# What was previously called "federation config" for SuperLink
+# connections in pyproject.toml has been renamed and moved.
+#
+# These settings are now **SuperLink connection configuration**
+# and are defined in the Flower configuration file.
+#
+# The entries below are commented out intentionally and are kept
+# only as a migration reference.
+#
+# Docs: https://flower.ai/docs/framework/ref-flower-configuration.html
+#######################################################################
+
+# [tool.flwr.federations]
+# default = "local-simulation"
+
+# [tool.flwr.federations.local-simulation]
+# options.num-supernodes = 2
