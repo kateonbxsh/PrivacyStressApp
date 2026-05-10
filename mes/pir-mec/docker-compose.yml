@@ -1,0 +1,40 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: mec-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+
+  api:
+    build: ./api
+    container_name: mec-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mosquitto
+
+  context_service:
+    build: ./context
+    container_name: mec-context
+    restart: unless-stopped
+    environment:
+      - MQTT_BROKER=mosquitto
+      - API_URL=http://api:8000/context
+    depends_on:
+      - mosquitto
+      - api
+
+  fl_service:
+    build: ./fl
+    container_name: mec-fl
+    restart: unless-stopped
+    environment:
+      - MQTT_BROKER=mosquitto
+    depends_on:
+      - mosquitto
