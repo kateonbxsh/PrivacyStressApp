@@ -8,7 +8,11 @@ try:
 except ImportError:
     # On définit un faux client MQTT pour les tests locaux sans bibliothèque
     class mqtt:
+        class CallbackAPIVersion:
+            VERSION1 = 1
+            VERSION2 = 2
         class Client:
+            def __init__(self, *args, **kwargs): pass
             def __getattr__(self, name): return lambda *a, **k: None
     print("[INFO] paho-mqtt non trouvé. Mode test activé.")
 
@@ -30,7 +34,7 @@ def get_current_context():
         print(f"Erreur lors de la récupération du contexte via l'API : {e}")
         return None
 
-def on_message(client, userdata, msg):
+def on_message(client, userdata, msg, properties=None):
     """
     Fonction appelée automatiquement par le client MQTT 
     chaque fois qu'un message arrive sur le topic 'tsa/prediction'.
@@ -92,7 +96,7 @@ def on_message(client, userdata, msg):
         print(f"Erreur critique dans le service de recommandation : {e}")
 
 # Initialisation du client MQTT
-client = mqtt.Client()
+client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 client.on_message = on_message
 
 try:

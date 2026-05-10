@@ -14,7 +14,7 @@ TOPIC_GLOBAL_MODEL = "tsa/fl/global_model"
 MIN_UPDATES_FOR_AGGREGATION = 3  # On agrège dès qu'on a 3 mises à jour
 updates_buffer = []
 
-def on_message(client, userdata, msg):
+def on_message(client, userdata, msg, properties=None):
     global updates_buffer
     
     try:
@@ -51,7 +51,7 @@ def on_message(client, userdata, msg):
         print(f"[FL] Erreur : {e}")
 
 # Setup MQTT
-client = mqtt.Client()
+client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 client.on_message = on_message
 
 try:

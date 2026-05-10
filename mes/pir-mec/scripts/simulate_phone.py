@@ -12,7 +12,7 @@ TOPIC_GLOBAL_MODEL = "tsa/fl/global_model"
 CLIENT_ID = f"user_{random.randint(100, 999)}"
 TOPIC_RECO = f"tsa/recommendation/{CLIENT_ID}"
 
-def on_message(client, userdata, msg):
+def on_message(client, userdata, msg, properties=None):
     """Reçoit les messages du MEC (recommandations ou modèle global)."""
     payload = json.loads(msg.payload.decode())
     if msg.topic == TOPIC_GLOBAL_MODEL:
@@ -21,7 +21,7 @@ def on_message(client, userdata, msg):
         print(f"\n[TÉLÉPHONE] Recommandation reçue : {payload.get('recommendation')}")
 
 # Configuration du client
-client = mqtt.Client(CLIENT_ID)
+client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, CLIENT_ID)
 client.on_message = on_message
 
 print(f"Connexion au broker {BROKER} en tant que {CLIENT_ID}...")
