@@ -1,2 +1,6 @@
-research_paper.*
+*
+!.gitignore
 !research_paper.tex
+!figures/
+!figures/**
+!references.bib

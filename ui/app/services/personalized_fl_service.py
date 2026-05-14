@@ -9,6 +9,7 @@ import httpx
 from nicegui import app
 
 from app.core.config import (
+    API_BASE_URL,
     MEC_API_URL,
     MEC_NODE_NAME,
     MEC_REGION,
@@ -105,9 +106,26 @@ async def _fetch_mec_shared_model() -> dict[str, Any] | None:
         return None
 
 
+async def _fetch_cloud_regional_model() -> dict[str, Any] | None:
+    try:
+        async with httpx.AsyncClient(timeout=4.0) as client:
+            response = await client.get(
+                f'{API_BASE_URL.rstrip("/")}/federated/regional-model',
+                params={'region': MEC_REGION, 'mecNodeName': MEC_NODE_NAME},
+            )
+            response.raise_for_status()
+            return response.json()
+    except Exception:
+        return None
+
+
 async def ensure_phone_model_initialized() -> dict[str, Any]:
     state = app.storage.user.get('personalized_fl')
     model = await _fetch_mec_shared_model()
+    source = 'mec'
+    if not model:
+        model = await _fetch_cloud_regional_model()
+        source = 'cloud'
 
     if not isinstance(state, dict):
         shared_weights = model.get('sharedWeights') if model else DEFAULT_SHARED_WEIGHTS
@@ -115,6 +133,7 @@ async def ensure_phone_model_initialized() -> dict[str, Any]:
             'region': model.get('region', MEC_REGION) if model else MEC_REGION,
             'mec_node': model.get('name', MEC_NODE_NAME) if model else MEC_NODE_NAME,
             'shared_version': model.get('version', 'local-default') if model else 'local-default',
+            'shared_source': source if model else 'local-default',
             'shared_weights': [float(value) for value in shared_weights],
             'personal_weights': [0.0 for _ in shared_weights],
             'round': 0,
@@ -127,6 +146,7 @@ async def ensure_phone_model_initialized() -> dict[str, Any]:
         state['region'] = model.get('region', MEC_REGION)
         state['mec_node'] = model.get('name', MEC_NODE_NAME)
         state['shared_version'] = model.get('version', 'regional')
+        state['shared_source'] = source
         state['shared_weights'] = [float(value) for value in shared_weights]
         # Preserve personal_weights vi exactly across region switches.
         app.storage.user['personalized_fl'] = state
@@ -215,6 +235,7 @@ async def train_personalized_phone_model(payload: dict[str, Any]) -> dict[str, A
         'personal_component': 'vi updated locally and kept on phone',
         'region': state.get('region'),
         'shared_version': state.get('shared_version'),
+        'shared_source': state.get('shared_source'),
         'mqtt_update_sent': published,
     }
     return prediction
