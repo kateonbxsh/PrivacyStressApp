@@ -16,6 +16,10 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
+    environment:
+      - BACKEND_API_URL=http://host.docker.internal:4000/api
+      - MEC_NODE_NAME=MEC Local Docker
+      - MEC_REGION=local-demo
     depends_on:
       - mosquitto
 
@@ -36,5 +40,9 @@ services:
     restart: unless-stopped
     environment:
       - MQTT_BROKER=mosquitto
+      - BACKEND_API_URL=http://host.docker.internal:4000/api
+      - MEC_API_URL=http://api:8000
+      - MEC_NODE_NAME=MEC Local Docker
+      - MEC_REGION=local-demo
     depends_on:
       - mosquitto

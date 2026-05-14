@@ -8,7 +8,9 @@ from typing import Any
 
 from nicegui import app
 
+from app.core.session import get_access_token, get_session_cookie
 from app.core.config import USE_MOCK_ADMIN_ANALYTICS
+from app.services.api_client import APIError, api_client
 
 ADMIN_EVENTS_KEY = 'admin_analytics_events'
 
@@ -502,11 +504,14 @@ class MockAdminAnalyticsService:
 
 
 class BackendAdminAnalyticsService:
+    async def get_dashboard_data_async(self) -> dict[str, Any]:
+        token = get_session_cookie() or get_access_token()
+        if not token:
+            raise APIError('No backend session available', 401)
+        return await api_client.get('admin/dashboard', token=token)
+
     def get_dashboard_data(self) -> dict[str, Any]:
-        raise NotImplementedError(
-            'BackendAdminAnalyticsService is not implemented yet. '
-            'Replace this with backend API calls when the backend/MEC layer is ready.'
-        )
+        return MockAdminAnalyticsService().get_dashboard_data()
 
 
 analytics_service = (

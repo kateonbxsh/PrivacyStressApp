@@ -23,5 +23,6 @@ export const config = {
   serverKek: required("SERVER_KEK"),
   https: (process.env.HTTPS ?? "false") === "true",
   sslKeyPath: process.env.SSL_KEY_PATH ?? "",
-  sslCertPath: process.env.SSL_CERT_PATH ?? ""
+  sslCertPath: process.env.SSL_CERT_PATH ?? "",
+  seedDemoData: (process.env.SEED_DEMO_DATA ?? "true") === "true"
 };

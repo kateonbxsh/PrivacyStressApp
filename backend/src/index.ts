@@ -3,8 +3,13 @@ import https from "node:https";
 import { createApp } from "./app.js";
 import { config } from "./config.js";
 import { prisma } from "./db/prisma.js";
+import { seedDemoData } from "./services/bootstrapService.js";
 
 async function start() {
+  if (config.seedDemoData) {
+    await seedDemoData();
+  }
+
   const app = createApp();
 
   if (config.https && config.sslKeyPath && config.sslCertPath) {

@@ -20,6 +20,8 @@ export interface LoginInput {
 export interface AuthResult {
   userId: string;
   email: string;
+  displayName: string | null;
+  role: string;
   recoveredVector: number[];
   matrixProof: {
     dimension: number;
@@ -141,6 +143,8 @@ export async function login(input: LoginInput): Promise<AuthResult> {
   return {
     userId: user.id,
     email: user.email,
+    displayName: user.displayName,
+    role: user.role,
     recoveredVector,
     matrixProof: {
       dimension: profile.vectorDimension,

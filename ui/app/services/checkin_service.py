@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.core.config import USE_MOCK_API
+from app.core.session import get_access_token, get_session_cookie
+from app.services.api_client import APIError, api_client
+
 
 def clamp(value: float, min_value: float = 0.0, max_value: float = 1.0) -> float:
     return max(min_value, min(max_value, value))
@@ -161,6 +165,22 @@ def build_mock_prediction(payload: dict[str, Any]) -> dict[str, Any]:
         'title': title,
         'recommendation': recommendation,
     }
+
+
+async def submit_checkin(payload: dict[str, Any]) -> dict[str, Any]:
+    if USE_MOCK_API:
+        return {
+            'prediction': build_mock_prediction(payload),
+            'derivedMetrics': {},
+            'supportFlag': False,
+            'privacy': {'stored': 'mock_session_only'},
+        }
+
+    token = get_session_cookie() or get_access_token()
+    if not token:
+        raise APIError('No backend session available', 401)
+
+    return await api_client.post('checkins', json=payload, token=token)
 
 
 def map_prediction_to_home_state(prediction: dict[str, Any]) -> dict[str, str]:

@@ -20,12 +20,16 @@ export async function loginController(req: Request, res: Response): Promise<void
     const result = await login(req.body);
     req.session.userId = result.userId;
     req.session.email = result.email;
+    req.session.role = result.role;
+    req.session.displayName = result.displayName;
     req.session.recoveredVector = result.recoveredVector;
     req.session.matrixProof = result.matrixProof;
 
     res.json({
       userId: result.userId,
       email: result.email,
+      displayName: result.displayName,
+      role: result.role,
       recoveredVector: result.recoveredVector,
       matrixProof: result.matrixProof
     });
@@ -43,6 +47,8 @@ export function meController(req: Request, res: Response): void {
   res.json({
     userId: req.session.userId,
     email: req.session.email,
+    displayName: req.session.displayName ?? null,
+    role: req.session.role ?? "user",
     recoveredVector: req.session.recoveredVector ?? null,
     matrixProof: req.session.matrixProof ?? null
   });

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Chemin vers le dossier racine du projet
-PROJECT_ROOT="/mnt/data/insa_cours/PrivacyStressApp/mes/pir-mec"
+# Chemin vers le dossier racine du projet MEC
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV_PYTHON="$PROJECT_ROOT/venv/bin/python"
 
 echo "=== DÉMARRAGE DES SERVICES MEC ==="

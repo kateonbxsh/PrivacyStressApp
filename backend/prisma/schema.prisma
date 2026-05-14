@@ -11,8 +11,12 @@ model User {
   id           String            @id @default(cuid())
   email        String            @unique
   passwordHash String
+  displayName  String?
+  role         String            @default("user")
   createdAt    DateTime          @default(now())
   links        UserProfileLink[]
+  checkIns     CheckIn[]
+  flUpdates    FederatedUpdate[]
 }
 
 model SensitiveProfile {
@@ -36,4 +40,65 @@ model UserProfileLink {
   createdAt  DateTime         @default(now())
   user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   profile    SensitiveProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model CheckIn {
+  id             String   @id @default(cuid())
+  userId         String
+  source         String   @default("manual_checkin")
+  timestamp      DateTime @default(now())
+  derivedMetrics Json
+  prediction     Json
+  stressScore    Float
+  stressLevel    String
+  supportFlag    Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([stressLevel])
+}
+
+model MecNode {
+  id             String            @id @default(cuid())
+  name           String            @unique
+  region         String
+  status         String            @default("online")
+  health         Int               @default(95)
+  modelVersion   String            @default("mec-v0")
+  sharedWeights   Json?
+  sampleCount     Int               @default(0)
+  lastHeartbeat  DateTime          @default(now())
+  createdAt      DateTime          @default(now())
+  flUpdates      FederatedUpdate[]
+}
+
+model GlobalModelState {
+  id           String   @id @default("global")
+  version      String   @default("global-v0")
+  sharedWeights Json
+  sampleCount  Int      @default(0)
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+}
+
+model FederatedUpdate {
+  id             String   @id @default(cuid())
+  userId         String?
+  mecNodeId      String?
+  clientId       String
+  round          Int
+  sampleCount    Int
+  updateNorm     Float
+  sharedWeights  Json?
+  epsilon        Float?
+  metrics        Json?
+  accepted       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  mecNode        MecNode? @relation(fields: [mecNodeId], references: [id], onDelete: SetNull)
+
+  @@index([clientId])
+  @@index([round])
+  @@index([createdAt])
 }

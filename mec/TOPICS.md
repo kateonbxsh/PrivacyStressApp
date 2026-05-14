@@ -44,3 +44,47 @@ Ce document définit les canaux (topics) et le format des messages échangés en
   "level": "warning"
 }
 ```
+
+## 5. Personalized Federated Learning Update (Téléphone -> MEC)
+
+Topic:
+
+```text
+tsa/fl/update
+```
+
+Payload:
+
+```json
+{
+  "client_id": "pseudo_001",
+  "shared_weights": [0.18, 0.22, 0.2, 0.16, 0.12, 0.14, 0.1, 0.12, -0.55],
+  "n_samples": 32,
+  "timestamp": 1778768000.0,
+  "personal_component_included": false
+}
+```
+
+The phone effective model is `wi = ws + vi`, but only `ws` is published. The personal adaptation component `vi` must remain on the phone.
+
+## 6. Regional Shared Model (MEC -> Téléphone)
+
+Topic:
+
+```text
+tsa/fl/global_model
+```
+
+Payload:
+
+```json
+{
+  "model_version": "mec-r1778768000",
+  "sharedWeights": [0.19, 0.21, 0.2, 0.17, 0.12, 0.13, 0.1, 0.12, -0.52],
+  "aggregated_from": 3,
+  "mec_node": "MEC Local Docker",
+  "region": "local-demo"
+}
+```
+
+When this arrives after a region switch or MEC update, the phone replaces only `ws` and preserves `vi`.

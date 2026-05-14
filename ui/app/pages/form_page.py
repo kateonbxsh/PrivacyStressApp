@@ -6,7 +6,9 @@ from nicegui import app, ui
 from app.components.layout import app_shell, bottom_nav, screen_container
 from app.guards.auth_guard import require_auth
 from app.services.activity_service import add_activity_entry
-from app.services.checkin_service import build_mock_prediction
+from app.services.api_client import APIError
+from app.services.checkin_service import build_mock_prediction, submit_checkin
+from app.services.personalized_fl_service import train_personalized_phone_model
 from app.services.admin_analytics_service import register_admin_event
 from app.theme import register_theme
 
@@ -132,12 +134,22 @@ def checkin_page() -> None:
             with ui.card().classes('nm-surface-card p-6 min-w-[300px] items-center'):
                 ui.spinner('dots', size='lg', color='primary')
                 ui.label('Analyzing your check-in...').classes('text-lg font-semibold mt-3')
-                ui.label('Generating a mock stress estimate').classes('nm-small')
+                ui.label('Generating an on-device style stress estimate').classes('nm-small')
 
         loading_dialog.open()
         await asyncio.sleep(1.2)
 
-        prediction = build_mock_prediction(payload)
+        try:
+            prediction = await train_personalized_phone_model(payload)
+        except Exception:
+            prediction = build_mock_prediction(payload)
+            prediction['model'] = 'local-fallback-heuristic'
+
+        try:
+            await submit_checkin(payload)
+        except APIError as error:
+            ui.notify(f'Backend unavailable, kept phone-local AI result: {error.msg}', color='warning')
+
         app.storage.user['last_prediction'] = prediction
         # user-scoped activity history (UI/session cache)
         add_activity_entry(payload, prediction)

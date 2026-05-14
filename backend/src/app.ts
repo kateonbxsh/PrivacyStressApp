@@ -2,7 +2,10 @@ import cors from "cors";
 import express from "express";
 import session from "express-session";
 import swaggerUi from "swagger-ui-express";
+import adminRoutes from "./routes/adminRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import checkInRoutes from "./routes/checkInRoutes.js";
+import federatedRoutes from "./routes/federatedRoutes.js";
 import { config } from "./config.js";
 import { openApiDocument } from "./docs/openapi.js";
 
@@ -12,6 +15,7 @@ export function createApp() {
   app.use(
     cors({
       origin: config.clientOrigin,
+      methods: ["GET", "POST", "DELETE", "OPTIONS"],
       credentials: true
     })
   );
@@ -50,6 +54,9 @@ export function createApp() {
   app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
 
   app.use("/api/auth", authRoutes);
+  app.use("/api/checkins", checkInRoutes);
+  app.use("/api/admin", adminRoutes);
+  app.use("/api/federated", federatedRoutes);
 
   return app;
 }

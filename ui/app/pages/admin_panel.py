@@ -4,7 +4,9 @@ from app.components.layout import app_shell, bottom_nav, screen_container
 from app.core.roles import ADMIN_ROLE
 from app.core.session import get_current_role, get_current_user, has_any_role
 from app.guards.role_guard import require_roles
-from app.services.admin_analytics_service import analytics_service
+from app.core.config import USE_MOCK_ADMIN_ANALYTICS
+from app.services.api_client import APIError
+from app.services.admin_analytics_service import MockAdminAnalyticsService, analytics_service
 from app.theme import register_theme
 
 
@@ -257,10 +259,20 @@ def admin_panel_page() -> None:
     role = get_current_role()
     is_admin = has_any_role(ADMIN_ROLE)
 
-    analytics_state = {'data': analytics_service.get_dashboard_data()}
+    fallback_analytics = MockAdminAnalyticsService()
+    analytics_state = {'data': fallback_analytics.get_dashboard_data()}
 
-    def refresh_dashboard():
-        analytics_state['data'] = analytics_service.get_dashboard_data()
+    async def refresh_dashboard():
+        try:
+            if USE_MOCK_ADMIN_ANALYTICS:
+                analytics_state['data'] = analytics_service.get_dashboard_data()
+            else:
+                analytics_state['data'] = await analytics_service.get_dashboard_data_async()
+        except (APIError, AttributeError) as error:
+            analytics_state['data'] = fallback_analytics.get_dashboard_data()
+            ui.notify(f'Using local analytics fallback: {getattr(error, "msg", str(error))}', color='warning')
+            render_dashboard.refresh()
+            return
         render_dashboard.refresh()
         ui.notify('Analytics refreshed', color='positive')
 

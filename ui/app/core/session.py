@@ -2,22 +2,28 @@ from __future__ import annotations
 from nicegui import app
 from app.core.roles import normalize_role
 
-def set_aut_session(acces_token: str, user: dict) -> None:
+def set_aut_session(access_token: str, user: dict, session_cookie: str | None = None) -> None:
     app.storage.user['authenticated'] = True
-    app.storage.user['access_token'] = acces_token
+    app.storage.user['access_token'] = access_token
+    if session_cookie:
+        app.storage.user['session_cookie'] = session_cookie
     app.storage.user['user'] = user
     
     
 def clear_auth_session() -> None:
     app.storage.user['authenticated'] = False
     app.storage.user.pop('access_token', None)
+    app.storage.user.pop('session_cookie', None)
     app.storage.user.pop('user', None)
     
 def is_auth() -> bool:
     return bool(app.storage.user.get('authenticated', False)) 
     
 def get_access_token() -> str | None:
-    return app.storage.user.get('acces_token')
+    return app.storage.user.get('access_token')
+
+def get_session_cookie() -> str | None:
+    return app.storage.user.get('session_cookie')
 
 def get_current_user() -> dict | None:
     return app.storage.user.get('user')

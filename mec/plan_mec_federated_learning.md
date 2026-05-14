@@ -175,14 +175,14 @@ L’ajout au groupe `docker` donne des privilèges élevés sur la machine. Pour
 Créer un dossier de travail :
 
 ```bash
-mkdir -p ~/pir-mec/{mosquitto/{config,data,log},api,fl,context,scripts}
-cd ~/pir-mec
+mkdir -p ./mec/{mosquitto/{config,data,log},api,fl,context,scripts}
+cd ./mec
 ```
 
 Arborescence cible :
 
 ```text
-pir-mec/
+mec/
 ├── docker-compose.yml
 ├── .env
 ├── mosquitto/
@@ -212,7 +212,7 @@ pir-mec/
 
 ### 8.1 Créer une configuration minimale
 
-Fichier : `~/pir-mec/mosquitto/config/mosquitto.conf`
+Fichier : `./mec/mosquitto/config/mosquitto.conf`
 
 ```conf
 listener 1883
@@ -794,3 +794,4 @@ curl http://localhost:8000/context
 ## 24. Résumé en une phrase
 
 Le MEC de ce projet est un **serveur local conteneurisé** qui reçoit des informations minimales venant des téléphones, intègre un contexte de mobilité local, produit des recommandations rapides et agrège les mises à jour issues de l’apprentissage fédéré sans manipuler les données brutes sensibles.
+

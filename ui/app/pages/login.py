@@ -98,7 +98,7 @@ def login_page() -> None:
                                 ui.navigate.to('/')
 
                         except APIError as e:
-                            ui.notify(getattr(e, 'message', 'Authentication failed'), color='negative')
+                            ui.notify(getattr(e, 'msg', 'Authentication failed'), color='negative')
                         finally:
                             login_button.enable()
 
@@ -124,7 +124,7 @@ def login_page() -> None:
                         with ui.column().classes('w-full gap-3 mt-4'):
                             with ui.card().classes('nm-login-demo-item shadow-none'):
                                 ui.label('User').classes('font-semibold text-[#0B4A38]')
-                                ui.label('demo@neuromove.app / demo123').classes('nm-small')
+                                ui.label('demo@neuromove.app / demo12345').classes('nm-small')
 
                             with ui.card().classes('nm-login-demo-item shadow-none'):
                                 ui.label('Researcher').classes('font-semibold text-[#0B4A38]')
@@ -132,4 +132,4 @@ def login_page() -> None:
 
                             with ui.card().classes('nm-login-demo-item shadow-none'):
                                 ui.label('Admin').classes('font-semibold text-[#0B4A38]')
-                                ui.label('admin@neuromove.app / admin123').classes('nm-small')
+                                ui.label('admin@neuromove.app / admin12345').classes('nm-small')
