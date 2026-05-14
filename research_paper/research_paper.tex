@@ -1,17 +1,24 @@
-\documentclass[conference]{IEEEtran}
+\documentclass[lettersize,journal]{IEEEtran}
 
 % ── Packages ──────────────────────────────────────────────────────────────
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
-\usepackage{amsmath}
+\usepackage{amsmath,amsfonts}
 \usepackage{amssymb}
 \usepackage{bm}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{array}
+\usepackage{textcomp}
+\usepackage{stfloats}
+\usepackage{url}
+\usepackage{graphicx}
 \usepackage{hyperref}
-\usepackage{xcolor}
 \usepackage{cite}
 \usepackage{booktabs}
 \usepackage{tabularx}
 \usepackage[table]{xcolor}
+\hyphenation{op-tical net-works semi-conduc-tor IEEE-Xplore}
 % ── Placeholder colour ────────────────────────────────────────────────────
 \newcommand{\placeholder}[1]{\textcolor{gray}{\textit{[#1]}}}
 
@@ -28,12 +35,15 @@
 \title{Privacy-Preserving Intelligent Mobility for Individuals with
        Autism Spectrum Disorder}
 
-\author{
-  \IEEEauthorblockN{Ahmed Aouab Admou, Yahya Misbahi, Titouan Mathieu,
-                    Nawfal El-Hammadi, Toumany Doumbouya}
-  \IEEEauthorblockA{National Institute of Applied Sciences\\
-                    Toulouse, France}
-}
+\author{Ahmed Aouab Admou, Yahya Misbahi, Titouan Mathieu,
+        Nawfal El-Hammadi, and Toumany Doumbouya%
+\thanks{The authors are with the National Institute of Applied Sciences,
+Toulouse, France.}
+\thanks{Manuscript prepared for the Privacy and Intelligent Robotics
+project, 2025--2026.}}
+
+\markboth{Privacy-Preserving Intelligent Mobility for ASD}%
+{Admou \MakeLowercase{\textit{et al.}}: Privacy-Preserving Intelligent Mobility for ASD}
 
 \maketitle
 
@@ -74,7 +84,7 @@ navigation.
 % ─────────────────────────────────────────────────────────────────────────
 \section{Introduction}
 
-Smart city mobility systems increasingly rely on pervasive sensing,
+\IEEEPARstart{S}{mart} city mobility systems increasingly rely on pervasive sensing,
 context-aware services, and artificial intelligence to optimize urban
 transport. These systems usually prioritize travel time, congestion, or
 network efficiency, but they rarely model the sensory accessibility of
@@ -195,12 +205,12 @@ approaches therefore move computation closer to the user and minimize
 what leaves the device. Multi-access Edge Computing (MEC) reduces
 latency and limits raw-data exposure by processing regional context
 near users~\cite{alwarafy2020}. Federated Learning (FL) trains models
-locally and exchanges model updates rather than raw records; when
-combined with clipping and Differential Privacy (DP), it can reduce
-inference risk while preserving useful model performance in sensitive
-medical and mobility settings~\cite{adnan2022}. These methods support a
-decentralized architecture, but conventional FL still tends to merge
-personal and shared learning into a single model.
+locally and exchanges model updates rather than raw records. Differential
+privacy (DP), usually implemented through clipping and calibrated noise,
+can additionally harden FL updates against inference attacks, but it is
+not the primary privacy mechanism in our prototype. These methods
+support a decentralized architecture, but conventional FL still tends to
+merge personal and shared learning into a single model.
 Additional privacy mechanisms are needed around the user profile
 itself. In our setting, the ASD sensitivity vector is not only encrypted
 for storage but also transformed by a user-specific matrix derived from
@@ -211,6 +221,38 @@ exposed. Edge processing complements this protection by keeping
 physiological signals and stress inference close to the phone, where
 immediate route adaptation can happen without broadcasting the user's
 raw state to the cloud.
+
+\begin{table}[!t]
+\caption{Related Work Synthesis and Remaining Gap\label{tab:related_work_synthesis}}
+\centering
+\scriptsize
+\renewcommand{\arraystretch}{1.2}
+\begin{tabularx}{\columnwidth}{
+>{\raggedright\bfseries}p{1.7cm}
+>{\raggedright}X
+>{\raggedright\arraybackslash}X}
+\toprule
+\rowcolor{gray!15}
+\textbf{Area} & \textbf{Main Contribution} & \textbf{Remaining Gap} \\
+\midrule
+Sensory maps &
+Expose noise, crowding, and other sensory attributes &
+Often rely on static or crowdmapped data with limited real-time context \\
+\midrule
+MaaS privacy &
+Identifies centralized storage and sharing risks &
+Rarely addresses ASD-specific profile sensitivity and consent needs \\
+\midrule
+MEC and FL &
+Moves computation closer to users and avoids raw-data upload &
+Usually aggregates a single model without separating personal adaptation \\
+\midrule
+Accessible consent &
+Improves readability and user autonomy &
+Must be integrated into the technical privacy architecture \\
+\bottomrule
+\end{tabularx}
+\end{table}
 
 \subsection{Positioning of This Work}
 The reviewed literature motivates a system that combines sensory-aware
@@ -253,6 +295,27 @@ the entire user population, and distributes generalized model
 initializations back down to MEC nodes and devices. No raw user data
 propagates beyond the device at any point in this pipeline.
 
+The hierarchy also separates time scales. The phone reacts at the
+shortest time scale, because discomfort prediction must occur during a
+walk, transit change, or station arrival. MEC nodes operate at an
+intermediate time scale, updating regional shared models and situational
+context as local transport conditions evolve. The cloud operates at the
+longest time scale, learning general initialization weights across
+regions and users. This separation is important for ASD mobility because
+the system must combine stable individual preferences with fast changes
+in the environment, such as a delayed metro line, a crowded platform, or
+unexpected construction noise.
+
+Operationally, the device owns the complete personal context. It
+combines the recovered ASD survey profile, current check-in answers,
+optional wearable signals, and MEC-provided context into the local
+feature vector. The MEC owns regional context and regional aggregation
+only; it does not need to know which sensory dimensions are most
+sensitive for a specific user. The cloud owns global coordination and
+encrypted synchronization metadata. This division makes the privacy
+boundary explicit and avoids treating the cloud as a trusted holder of
+raw disability-related records.
+
 \subsection{Threat Model and Privacy Boundary}
 
 The system assumes an honest-but-curious cloud backend and honest-but-
@@ -265,10 +328,9 @@ obfuscation of profile vectors prior to persistence. Malicious clients
 that deliberately submit poisoned model updates are considered a future
 robustness problem and are outside the current prototype scope.
 
-\begin{table}[ht]
+\begin{table}[!t]
     \centering
-    \caption{Privacy boundary of the Cloud--MEC--Device architecture.}
-    \label{tab:privacy_boundary}
+    \caption{Privacy Boundary of the Cloud--MEC--Device Architecture\label{tab:privacy_boundary}}
     \scriptsize
     \renewcommand{\arraystretch}{1.25}
     \begin{tabularx}{\columnwidth}{
@@ -353,6 +415,17 @@ shutdown indicators. All these features are fused locally on the phone;
 the MEC supplies only regional context and never receives the complete
 personal feature vector.
 
+The feature design is intentionally modular. Survey-derived features
+change slowly and describe stable sensitivities; physiological and
+check-in features change at session time; MEC situational features
+change with the transport environment. Keeping these groups explicit
+allows the prototype to support partial sensing. For instance, if a
+wearable heart-rate signal is unavailable, the local model can still
+combine the ASD profile, self-reported state, and MEC context. This
+design also supports future ablation studies, because each feature group
+can be removed or perturbed to measure its contribution to discomfort
+prediction.
+
 \subsection{Personalized On-Device Federated Learning}
 
 To avoid forcing every user in a region to share a single identical
@@ -387,8 +460,11 @@ feedback history, and behavioral patterns.
 
 Only the updated shared component $\mathbf{w}_s$ is transmitted to the
 MEC node. The personal component $\mathbf{v}_i$ is never serialized,
-published, or stored outside the phone. Before transmission, the shared
-update can still be clipped and noised:
+published, or stored outside the phone. The main privacy boundary
+therefore comes from local data processing, non-transmission of raw
+records, encrypted profile storage, and the strict separation of
+$\mathbf{v}_i$. As an optional hardening layer, the shared update can be
+clipped and noised before transmission:
 \begin{equation}
     \tilde{\mathbf{w}}_{s,i} =
     \mathrm{clip}\!\left(\mathbf{w}_{s,i},\,C\right)
@@ -450,51 +526,37 @@ summarized as Algorithm~\ref{alg:pfl}. The algorithm highlights the
 initialization chain, the local personalization step, and the fact that
 only shared components are aggregated upstream.
 
-\begin{table}[ht]
-    \centering
-    \caption{Personalized hierarchical FL protocol.}
-    \label{alg:pfl}
-    \scriptsize
-    \renewcommand{\arraystretch}{1.15}
-    \begin{tabularx}{\columnwidth}{>{\raggedright\arraybackslash}X}
-        \toprule
-        \textbf{Algorithm 1: Personalized hierarchical federated learning} \\
-        \midrule
-        \textbf{Input:} global shared model
-        $\mathbf{w}_{s,\mathrm{cloud}}$, MEC region $r$, phone user $i$,
-        local dataset $\mathcal{D}_i$. \\
-        \textbf{1. Cloud initialization:} maintain
-        $\mathbf{w}_{s,\mathrm{cloud}}$ from regional shared model
-        submissions. \\
-        \textbf{2. MEC initialization:} when a MEC node for region $r$
-        starts, request $\mathbf{w}_{s,r}$ from the cloud; if no regional
-        model exists, initialize $\mathbf{w}_{s,r} \leftarrow
-        \mathbf{w}_{s,\mathrm{cloud}}$. \\
-        \textbf{3. Phone initialization:} request $\mathbf{w}_{s,r}$
-        from the nearest MEC; if unavailable, request cloud regional
-        fallback; if unavailable, use a local default. Set
-        $\mathbf{v}_i \leftarrow \mathbf{0}$. \\
-        \textbf{4. Local inference:} compute
-        $\mathbf{w}_i=\mathbf{w}_{s,r}+\mathbf{v}_i$ and predict
-        discomfort from local profile, physiology, check-in context, and
-        MEC situational context. \\
-        \textbf{5. Local training:} update $\mathbf{w}_{s,r}$ and
-        $\mathbf{v}_i$ using separate learning rates on
-        $\nabla\mathcal{L}_i(\mathbf{w}_{s,r}+\mathbf{v}_i)$. \\
-        \textbf{6. Phone-to-MEC upload:} transmit only
-        $\tilde{\mathbf{w}}_{s,i}$ and $n_i$; never transmit
-        $\mathbf{v}_i$ or raw data. \\
-        \textbf{7. MEC aggregation:} compute
-        $\mathbf{w}_{s,\mathrm{region},r} =
-        \sum_i(n_i/N)\tilde{\mathbf{w}}_{s,i}$. \\
-        \textbf{8. MEC-to-cloud upload:} transmit only the regional
-        shared model and aggregate metadata. \\
-        \textbf{9. Region switch:} replace only the shared component
-        with the new region's $\mathbf{w}_{s,r'}$ and preserve
-        $\mathbf{v}_i$. \\
-        \bottomrule
-    \end{tabularx}
-\end{table}
+\begin{algorithm}[!t]
+\caption{Personalized hierarchical federated learning}
+\label{alg:pfl}
+\begin{algorithmic}[1]
+\STATE \textbf{Input:} global shared model
+$\mathbf{w}_{s,\mathrm{cloud}}$, MEC region $r$, phone user $i$, local
+dataset $\mathcal{D}_i$
+\STATE Cloud maintains $\mathbf{w}_{s,\mathrm{cloud}}$ from regional
+shared submissions.
+\STATE When MEC $r$ starts, request $\mathbf{w}_{s,r}$ from the cloud.
+\IF{no regional model exists}
+    \STATE $\mathbf{w}_{s,r} \leftarrow
+    \mathbf{w}_{s,\mathrm{cloud}}$
+\ENDIF
+\STATE Phone requests $\mathbf{w}_{s,r}$ from the nearest MEC, then from
+the cloud fallback if the MEC is unavailable.
+\STATE For a new phone user, set $\mathbf{v}_i \leftarrow \mathbf{0}$.
+\STATE Compute $\mathbf{w}_i=\mathbf{w}_{s,r}+\mathbf{v}_i$ for local
+inference using profile, physiology, check-in, and MEC context.
+\STATE Update $\mathbf{w}_{s,r}$ and $\mathbf{v}_i$ locally with
+separate learning rates on
+$\nabla\mathcal{L}_i(\mathbf{w}_{s,r}+\mathbf{v}_i)$.
+\STATE Transmit only $\tilde{\mathbf{w}}_{s,i}$ and $n_i$ to the MEC.
+\STATE MEC rejects any payload containing $\mathbf{v}_i$ or raw data.
+\STATE MEC computes $\mathbf{w}_{s,\mathrm{region},r} =
+\sum_i(n_i/N)\tilde{\mathbf{w}}_{s,i}$.
+\STATE MEC uploads only the regional shared model and aggregate metadata.
+\STATE On region switch, replace $\mathbf{w}_{s,r}$ with
+$\mathbf{w}_{s,r'}$ and preserve $\mathbf{v}_i$.
+\end{algorithmic}
+\end{algorithm}
 
 \subsection{Profile Vector Obfuscation}
 
@@ -558,6 +620,28 @@ StrongBox, or a Trusted Platform Module, the KEK or DEK may
 alternatively be bound to hardware-attested key material, providing an
 additional layer of protection against software-level extraction.
 
+This mechanism supports cross-device recovery of the questionnaire
+profile but not automatic recovery of all phone-local learning state.
+When a user authenticates on a new device, the encrypted database record
+can be used to recover the obfuscated and encrypted ASD survey profile,
+provided that the user supplies the correct credentials. The personal
+model component $\mathbf{v}_i$, however, is designed as a phone-local
+adaptation vector and is not synchronized in the current prototype. This
+choice protects personalization from server-side exposure but creates a
+portability limitation: a new device can reconstruct the user's survey
+profile and initialize $\mathbf{w}_s$ from the MEC or cloud, but it
+starts with a fresh local personal vector unless a future secure
+transfer mechanism is added.
+
+One possible extension is to apply the same protection pattern to
+$\mathbf{v}_i$ when cross-device transfer is explicitly requested by the
+user. In such a design, the personal vector could be transformed with a
+credential-derived matrix, encrypted with a DEK, and stored as an
+optional encrypted recovery object. This would preserve the principle
+that the server cannot interpret the personalized component while giving
+users a controlled way to migrate local adaptation between trusted
+devices.
+
 
 % ---------------------------------------------------------------
 \section{Implementation}
@@ -596,6 +680,16 @@ features on the phone. The MEC does not need access to the user's ASD
 profile or physiological signals to provide this context; it only
 supplies regional environmental information that improves the local
 prediction.
+
+In the prototype, this behavior is visible through the web interface.
+The check-in workflow produces a discomfort estimate immediately after
+the user submits the local context. The model state stored in the client
+session records the shared source, regional identifier, training round,
+and private adaptation vector. These fields allow the interface to show
+whether the shared component came from the MEC, from a cloud fallback,
+or from a deterministic offline default. The same service also prepares
+the shared update payload sent to the MEC, ensuring that $\mathbf{v}_i$
+is excluded before serialization.
 
 If the MEC API is reachable, the client obtains its initial shared
 component from \texttt{/fl/model}. If the MEC is temporarily
@@ -702,8 +796,10 @@ operate on non-identifying aggregate summaries rather than raw user
 profiles.
 
 On the client side, the Flower \texttt{NumPyClient} interface implements
-local personalized training, parameter clipping, Gaussian noise
-injection, and submission of protected shared updates to the server.
+local personalized training and submission of protected shared updates
+to the server. Parameter clipping and Gaussian noise injection are
+included as optional DP-style hardening for experiments where update
+inference risk must be reduced.
 The implementation mirrors the deployed web-app logic: each simulated
 client keeps a private $\mathbf{v}_i$ initialized to zero, computes
 gradients on $\mathbf{w}_s+\mathbf{v}_i$, updates both local
@@ -752,10 +848,9 @@ reachable, it uses a local default shared component so that inference
 continues in degraded mode. When the MEC becomes reachable again, the phone can refresh
 $\mathbf{w}_s$ while keeping $\mathbf{v}_i$ unchanged.
 
-\begin{table*}[t]
+\begin{table*}[!t]
     \centering
-    \caption{Main communication channels and privacy role.}
-    \label{tab:protocol}
+    \caption{Main Communication Channels and Privacy Role\label{tab:protocol}}
     \scriptsize
     \renewcommand{\arraystretch}{1.2}
     \begin{tabularx}{\textwidth}{
@@ -805,6 +900,31 @@ $\mathbf{w}_s$ while keeping $\mathbf{v}_i$ unchanged.
 % ---------------------------------------------------------------
 \section{Evaluation and Results}
 
+\subsection{Evaluation Criteria}
+
+The prototype evaluation focuses on technical feasibility rather than
+clinical efficacy. Four criteria are considered. First, the local
+inference path must remain available even when the MEC is unreachable,
+because the user may still need support during connectivity loss.
+Second, the federated path must enforce the privacy boundary by
+transmitting only shared model components and aggregate metadata. Third,
+regional adaptation must be observable: a MEC node should initialize
+from the cloud, accept nearby shared updates, and expose a regional
+model to phones. Fourth, personalization must survive region switching,
+meaning that a new regional shared component can be loaded without
+overwriting the private vector $\mathbf{v}_i$.
+
+These criteria correspond to the main claims of the architecture. They
+also define the next empirical protocol. Once participant data are
+available, the system should be compared against a cloud-only baseline,
+a MEC-only shared model, a purely local model, and the proposed
+personalized hierarchical model. Metrics should include prediction
+accuracy, calibration of discomfort scores, latency, communication
+volume, battery impact, and subjective usability. Privacy evaluation
+should report the type of data visible at each tier, the amount of noise
+added to shared updates, and the resulting privacy budget when a formal
+accountant is integrated.
+
 \subsection{Federated Learning Prototype Evaluation}
 
 The federated learning prototype was evaluated locally using Flower's
@@ -824,10 +944,9 @@ clipping norm of $C=1.0$, and Gaussian update noise with standard
 deviation $\sigma=0.01$. The round timeout was increased to 120 seconds
 to account for the overhead of the Flower and Ray simulation backend.
 
-\begin{table}[ht]
+\begin{table}[!t]
     \centering
-    \caption{Federated learning simulation results over three rounds.}
-    \label{tab:fl_results}
+    \caption{Federated Learning Simulation Results Over Three Rounds\label{tab:fl_results}}
     \scriptsize
     \renewcommand{\arraystretch}{1.2}
     \begin{tabular}{ccc}
@@ -856,6 +975,16 @@ parameters, together with coarse training metrics. This behavior is
 consistent with the system objective of avoiding centralised exposure
 of sensitive ASD-related mobility profiles.
 
+The loss values should be interpreted as an engineering validation
+signal rather than as a clinical performance claim. The goal of this
+experiment was to verify that the training loop, parameter exchange,
+aggregation, and privacy filters operate coherently. A future empirical
+study will require participant-approved labels, repeated mobility
+episodes, and comparison against baselines such as a non-personalized
+global model, a regional-only model, and a purely local model. These
+baselines will make it possible to quantify the contribution of
+personalization, regional MEC context, and hierarchical aggregation.
+
 \subsection{End-to-End Prototype Validation}
 
 The implemented prototype was also validated as an integrated
@@ -866,10 +995,9 @@ The web application executes the local personalized model during
 check-in, the MEC layer exposes regional shared-model initialization,
 and the backend stores cloud and regional shared-model metadata.
 
-\begin{table}[ht]
+\begin{table}[!t]
     \centering
-    \caption{Functional validation of the implemented prototype.}
-    \label{tab:functional_validation}
+    \caption{Functional Validation of the Implemented Prototype\label{tab:functional_validation}}
     \scriptsize
     \renewcommand{\arraystretch}{1.2}
     \begin{tabularx}{\columnwidth}{
@@ -925,11 +1053,9 @@ cloud backend records global/regional model state. This provides
 evidence of technical feasibility, but it should not be interpreted as
 clinical validation of ASD stress prediction.
 
-\begin{table}[ht]
+\begin{table}[!t]
     \centering
-    \caption{Prototype demonstration results using synthetic and manual
-    test data.}
-    \label{tab:demo_results}
+    \caption{Prototype Demonstration Results Using Synthetic and Manual Test Data\label{tab:demo_results}}
     \scriptsize
     \renewcommand{\arraystretch}{1.2}
     \begin{tabularx}{\columnwidth}{
@@ -976,31 +1102,48 @@ The current federated learning evaluation remains preliminary. First,
 the dataset used in the prototype is synthetic and only approximates the
 structure of future ASD mobility features. It is sufficient to validate
 the software pipeline, but not to draw conclusions about real-world
-prediction accuracy. Second, the differential privacy mechanism is
-implemented as clipping and Gaussian noise injection, but no formal
-privacy budget $(\varepsilon, \delta)$ has yet been calibrated. Third,
-the MEC model is currently evaluated separately from the Flower
-aggregation loop. Future work should integrate MEC-level aggregation
-directly into the hierarchical Cloud--MEC--Device workflow described in Section~\ref{sec:architecture}.
+prediction accuracy. Second, differential privacy is treated as an
+optional update-hardening mechanism rather than a core requirement of
+the architecture; no formal privacy budget $(\varepsilon, \delta)$ has
+yet been calibrated. Third, the MEC model is currently evaluated
+separately from the Flower aggregation loop. Future work should
+integrate MEC-level aggregation directly into the hierarchical
+Cloud--MEC--Device workflow described in Section~\ref{sec:architecture}.
 
 Despite these limitations, the prototype demonstrates that the proposed
 architecture can support local training, protected update transmission,
 and server-side aggregation without collecting raw user data.
+
+A second limitation concerns device portability. The encrypted database
+record allows an authenticated user to recover the ASD survey profile on
+a new device, because the profile is stored as an encrypted and
+matrix-obfuscated vector. The personalized model component
+$\mathbf{v}_i$ is different: by design it remains local to the original
+phone and is not uploaded to the MEC or cloud. Consequently, a new
+device can initialize from the current MEC or cloud shared component and
+recover the survey profile, but it cannot automatically recover the
+previous device's learned personal adaptation. A future version could
+make this optional by applying the same obfuscation and encryption
+mechanisms to $\mathbf{v}_i$ before storing or transferring it, while
+still ensuring that the server cannot interpret the personal vector.
 
 \subsection{Security and Privacy Limitations}
 
 The matrix transformation should be interpreted as an additional
 obfuscation mechanism rather than a standalone cryptographic guarantee.
 Encryption remains the primary confidentiality mechanism for stored
-profile data. The current prototype also does not yet implement secure
-aggregation, Byzantine-robust aggregation, formal client attestation, or
-a calibrated differential privacy accountant. MQTT is used for local
-prototype communication and should be deployed with TLS, authentication,
-and topic-level access control in a production setting. Finally, the
-prototype data are synthetic or manually generated; real-world
-validation requires an ethically approved study with ASD participants
-or caregivers, carefully designed consent materials, and controlled
-evaluation of prediction accuracy, latency, usability, and safety.
+profile data. Similarly, differential privacy should be understood as an
+optional protection for federated shared updates, not as the foundation
+of privacy in the current design. The current prototype also does not
+yet implement secure aggregation, Byzantine-robust aggregation, formal
+client attestation, or a calibrated differential privacy accountant.
+MQTT is used for local prototype communication and should be deployed
+with TLS, authentication, and topic-level access control in a production
+setting. Finally, the prototype data are synthetic or manually
+generated; real-world validation requires an ethically approved study
+with ASD participants or caregivers, carefully designed consent
+materials, and controlled evaluation of prediction accuracy, latency,
+usability, and safety.
 
 % ---------------------------------------------------------------
 \section{Conclusion}
@@ -1033,6 +1176,15 @@ ethically collected ASD mobility data, calibrating formal differential
 privacy guarantees, strengthening secure aggregation and client
 attestation, and measuring prediction accuracy, latency, usability, and
 perceived safety in realistic mobility scenarios.
+
+
+\section*{Acknowledgment}
+
+The authors acknowledge the use of AI-based writing assistance only for
+English formulation, grammar, and clarity improvements. The technical
+content, system design, interpretation, and final manuscript decisions
+were reviewed and validated by the authors, who remain fully responsible
+for the submitted work.
 
 
 % ---------------------------------------------------------------
