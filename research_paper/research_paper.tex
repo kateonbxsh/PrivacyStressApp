@@ -59,8 +59,9 @@ data. This study aimed to design and implement a privacy-preserving
 intelligent mobility prototype for ASD users based on a three-tier
 Cloud--MEC--Device architecture. The proposed system combines an
 encrypted and matrix-obfuscated ASD profile vector, on-device
-personalized inference, regional MEC context enrichment, and
-personalized hierarchical federated learning. In the implemented
+personalized inference, optional smartwatch-derived physiological
+signals such as BPM, regional MEC context enrichment, and personalized
+hierarchical federated learning. In the implemented
 prototype, the phone-side model is decomposed as
 $\mathbf{w}_i=\mathbf{w}_s+\mathbf{v}_i$, where only the shared
 component $\mathbf{w}_s$ is federated and the personal component
@@ -96,9 +97,9 @@ route avoidance, making conventional navigation insufficient for safe
 and autonomous travel~\cite{maclennan2023}.
 
 Several researchers have investigated sensory-aware and personalized
-urban navigation. Mirri et al.~\cite{mirri2019} developed the PIUMA
-application, which indexes places according to sensory characteristics
-and enables route filtering from an individual user profile. Other
+urban navigation. Cena et al.~\cite{cena2023} evaluated a map-based
+application that indexes places according to sensory characteristics and
+enables route filtering from an individual user profile. Other
 assistive mapping approaches have explored crowdmapping and inclusive
 accessibility information. In parallel, privacy-preserving learning has
 been studied for sensitive medical and mobility contexts. Federated
@@ -125,7 +126,9 @@ intelligent mobility prototype for ASD users. The system represents
 sensory sensitivities as a normalized profile vector, protects this
 vector through user-specific matrix obfuscation and encryption, and
 combines it locally with contextual and physiological features for
-discomfort prediction. The learning architecture follows a
+discomfort prediction. These physiological features may be entered
+manually or obtained from a connected smartwatch, for example through
+BPM and other wearable health signals. The learning architecture follows a
 Cloud--MEC--Device hierarchy: the phone performs local inference and
 personalized training, MEC nodes aggregate regional shared model
 updates and provide situational context, and the cloud coordinates
@@ -176,7 +179,7 @@ disruptive than a longer travel time~\cite{maclennan2023,beck2025}.
 Existing sensory-aware systems show that neurodivergent mobility cannot
 be reduced to shortest-path routing. PIUMA indexes places according to
 sensory features and lets users filter routes using an individual
-profile~\cite{mirri2019}. Related crowdmapping approaches such as
+profile~\cite{cena2023}. Related crowdmapping approaches such as
 mPASS, Maps4all, and CARES extend accessibility information by
 collecting user reports about architectural or sensory barriers.
 Together, these systems demonstrate the value of explicit sensory
@@ -207,20 +210,7 @@ latency and limits raw-data exposure by processing regional context
 near users~\cite{alwarafy2020}. Federated Learning (FL) trains models
 locally and exchanges model updates rather than raw records. Differential
 privacy (DP), usually implemented through clipping and calibrated noise,
-can additionally harden FL updates against inference attacks, but it is
-not the primary privacy mechanism in our prototype. These methods
-support a decentralized architecture, but conventional FL still tends to
-merge personal and shared learning into a single model.
-Additional privacy mechanisms are needed around the user profile
-itself. In our setting, the ASD sensitivity vector is not only encrypted
-for storage but also transformed by a user-specific matrix derived from
-credential-based key material. This matrix transformation is not treated
-as a replacement for encryption; rather, it is an extra obfuscation step
-that makes a stored vector harder to interpret if database records are
-exposed. Edge processing complements this protection by keeping
-physiological signals and stress inference close to the phone, where
-immediate route adaptation can happen without broadcasting the user's
-raw state to the cloud.
+can additionally harden data against inference attacks.
 
 \begin{table}[!t]
 \caption{Related Work Synthesis and Remaining Gap\label{tab:related_work_synthesis}}
@@ -259,32 +249,56 @@ The reviewed literature motivates a system that combines sensory-aware
 mobility support, accessible privacy practices, and decentralized AI.
 The gap addressed in this work is the lack of an integrated prototype
 that separates regional knowledge from private personal adaptation. Our
-architecture combines encrypted profile synchronization, additional
-matrix obfuscation of the ASD profile vector, MEC-based situational
-context, and personalized hierarchical FL. Unlike centralized mobility
-platforms, raw sensory profiles and physiological context remain on the
-phone. Unlike standard FL, the phone model is decomposed into a shared
-component federated through MEC nodes and a private component that never
-leaves the device.
-The MEC layer also addresses a limitation of crowdmapped sensory
-navigation by injecting situational data, such as metro delay, platform
-crowding, construction noise, or quiet-area availability, into the local
-phone-side model. Thus, the system learns from regional infrastructure
-conditions without requiring the MEC to see the user's private ASD
-profile or personal adaptation vector.
+architecture combines encryption, obfuscation, MEC-based situational
+context, and personalized hierarchical Federated Learning.
 % ---------------------------------------------------------------
 \section{System Architecture and Mathematical Framework}
 % ---------------------------------------------------------------
 \label{sec:architecture}
+
+\subsection{User Application and Local Data Flow}
+
+The entry point of the system is a mobile application designed to help
+an ASD user anticipate and reduce mobility-related discomfort. At first
+launch, the user completes a structured sensory and behavioral survey.
+The questionnaire asks about sensitivities such as noise, light, crowd
+density, route disruption, transition difficulty, need for isolation,
+and preferred recovery conditions. The answers are normalized locally
+into an ASD profile vector $\mathbf{x}$, which becomes the stable
+personal baseline used by the local model. This vector is not sent in
+plaintext to the MEC or the cloud.
+
+During daily use, the application performs check-ins. A check-in
+captures the user's current state, for example fatigue, stress,
+breathing difficulty, communication load, and perceived environmental
+pressure. The app can also be connected to a smartwatch or wearable
+sensor, with user permission, to read BPM, heart-rate variability,
+activity level, sleep-related indicators, or other physiological
+signals. These data are treated as local phone-side inputs. If no
+wearable is connected, the app continues to work with manual check-in
+answers, route, sound and light context, and MEC-provided situational information.
+
+The purpose of the application is therefore twofold. First, it provides
+real-time local inference: the phone combines the ASD profile, current
+check-in, optional wearable data, and regional context to estimate a
+discomfort score before or during a mobility episode. Second, it
+supports privacy-preserving personalization: user feedback and local
+observations update the on-device model, but raw survey answers,
+physiological streams, check-in details, and the private personalization
+component remain on the device. Only protected shared model information
+is later sent toward the MEC layer for regional learning.
+
 \subsection{Overview of the Three-Tier Hierarchical Architecture}
 
 The proposed system is organized into three computational tiers that
 interact bidirectionally: the user device (smartphone), Multi-access
 Edge Computing (MEC) nodes deployed at transport infrastructure
 locations, and a central cloud server. This hierarchy is denoted
-Cloud~$\leftrightarrow$~MEC~$\leftrightarrow$~Device. Each tier is
-responsible for a distinct scope of learning and inference. The device
-tier performs real-time, personalized discomfort prediction and local
+Cloud~$\leftrightarrow$~MEC~$\leftrightarrow$~Device. Each tier includes
+a machine learning model whose architecture is shared between the three
+tiers, but each tier is responsible for a distinct scope of learning and
+inference.
+The device tier performs real-time, personalized discomfort prediction and local
 model fine-tuning using data that never leaves the hardware. The MEC
 tier aggregates model weights from multiple devices within a geographic
 region and specializes the shared model to local environmental patterns
@@ -309,12 +323,15 @@ unexpected construction noise.
 Operationally, the device owns the complete personal context. It
 combines the recovered ASD survey profile, current check-in answers,
 optional wearable signals, and MEC-provided context into the local
-feature vector. The MEC owns regional context and regional aggregation
-only; it does not need to know which sensory dimensions are most
-sensitive for a specific user. The cloud owns global coordination and
-encrypted synchronization metadata. This division makes the privacy
-boundary explicit and avoids treating the cloud as a trusted holder of
-raw disability-related records.
+feature vector. In a full mobile deployment, the phone can also connect
+to a smartwatch or wearable sensor to read BPM, heart-rate variability,
+sleep quality, activity level, or similar physiological indicators. The
+MEC owns regional context and regional aggregation only; it does not
+need to know which sensory dimensions are most sensitive for a specific
+user or receive smartwatch raw streams. The cloud owns global
+coordination and encrypted synchronization metadata. This division makes
+the privacy boundary explicit and avoids treating the cloud as a trusted
+holder of raw records.
 
 \subsection{Threat Model and Privacy Boundary}
 
@@ -382,7 +399,8 @@ contextual feature vector
 \end{equation}
 where contextual features include ambient noise level, estimated crowd
 density at the current location, weather conditions, heart rate acquired
-from a paired wearable device, time of day, and current transit mode.
+from a paired smartwatch or wearable device, time of day, and current
+transit mode.
 The composite input to the on-device model is the concatenated feature
 vector
 \begin{equation}
@@ -403,9 +421,11 @@ suitable for local simulation and on-device execution.
 In the implemented prototype, the feature groups are explicitly
 separated by origin. User-derived features include the ASD sensory
 profile, current energy, breathing state, communication difficulty, and
-need for isolation. Physiological features include heart rate, heart
-rate variability when available, sleep quality, and wearable
-availability. Local environmental features include perceived noise,
+need for isolation. Physiological features include BPM, heart rate,
+heart-rate variability when available, sleep quality, activity level,
+and wearable availability. These values can come from manual check-in
+fields or from a connected smartwatch, depending on the device
+permissions granted by the user. Local environmental features include perceived noise,
 light, crowd density, routine disruption, transition difficulty, social
 load, and calm-space availability. MEC situational features include
 regional signals such as metro delay, transport incident state,
@@ -420,26 +440,29 @@ change slowly and describe stable sensitivities; physiological and
 check-in features change at session time; MEC situational features
 change with the transport environment. Keeping these groups explicit
 allows the prototype to support partial sensing. For instance, if a
-wearable heart-rate signal is unavailable, the local model can still
-combine the ASD profile, self-reported state, and MEC context. This
-design also supports future ablation studies, because each feature group
-can be removed or perturbed to measure its contribution to discomfort
-prediction.
+smartwatch BPM or heart-rate signal is unavailable, the local model can
+still combine the ASD profile, self-reported state, and MEC context.
+Conversely, when a watch is paired, the physiological stream can enrich
+the prediction without leaving the device. This design also supports
+future ablation studies, because each feature group can be removed or
+perturbed to measure its contribution to discomfort prediction.
 
 \subsection{Personalized On-Device Federated Learning}
 
 To avoid forcing every user in a region to share a single identical
 model, the phone model is decomposed into a shared component and a
-personal adaptation component. For user $i$, the effective inference
-model is
+personal adaptation component. In this notation, $\mathbf{w}$ denotes a
+vector of model weights, or trainable parameters, used by the local
+discomfort prediction model. For user $i$, the effective inference model
+weights are
 \begin{equation}
     \mathbf{w}_i = \mathbf{w}_s + \mathbf{v}_i
 \end{equation}
-where $\mathbf{w}_s$ is the shared regional component received from the
-nearest MEC node and $\mathbf{v}_i$ is the private personal component
-stored only on the user's phone. For a new user, $\mathbf{v}_i$ is
-initialized to the zero vector, so the first effective model is simply
-the MEC initialization.
+where $\mathbf{w}_s$ is the shared regional weight vector received from
+the nearest MEC node and $\mathbf{v}_i$ is the private personal
+adaptation weight vector stored only on the user's phone. For a new
+user, $\mathbf{v}_i$ is initialized to the zero vector, so the first
+effective model is simply the MEC initialization.
 
 During local training, the loss is computed on the effective model
 $\mathbf{w}_s+\mathbf{v}_i$, but the two components are updated with
@@ -487,8 +510,7 @@ sample size:
     \frac{\displaystyle\sum_{i=1}^{K_j} n_i\,\tilde{\mathbf{w}}_{s,i}}
          {\displaystyle\sum_{i=1}^{K_j} n_i}
 \end{equation}
-The MEC node rejects any payload containing a personal component and
-uses $\mathbf{w}_{s,\mathrm{region},j}$ as the updated regional
+The MEC node uses $\mathbf{w}_{s,\mathrm{region},j}$ as the updated regional
 initialization distributed back to nearby phones.
 
 \textbf{Cloud-level aggregation.}
@@ -518,6 +540,37 @@ $\mathbf{w}_{s,\mathrm{Toulouse}}+\mathbf{v}_i$ to
 The private vector $\mathbf{v}_i$ is preserved exactly. This prevents
 loss of personalization while allowing the user to benefit from the new
 regional MEC model.
+
+\begin{algorithm}[!t]
+\caption{Region switching while preserving personalization}
+\label{alg:region_switching}
+\begin{algorithmic}[1]
+\STATE \textbf{Input:} current region $r$, detected region $r'$,
+current shared weights $\mathbf{w}_{s,r}$, personal weights
+$\mathbf{v}_i$
+\IF{$r'=r$}
+    \STATE Keep current model
+    $\mathbf{w}_i \leftarrow \mathbf{w}_{s,r}+\mathbf{v}_i$.
+\ELSE
+    \STATE Request $\mathbf{w}_{s,r'}$ from the nearest MEC node.
+    \IF{MEC model is unavailable}
+        \STATE Request regional fallback
+        $\mathbf{w}_{s,r'}$ from the cloud backend.
+    \ENDIF
+    \IF{no regional shared model is reachable}
+        \STATE Keep $\mathbf{w}_{s,r}$ until connectivity is restored.
+    \ELSE
+        \STATE Replace only the shared component:
+        $\mathbf{w}_s \leftarrow \mathbf{w}_{s,r'}$.
+        \STATE Preserve $\mathbf{v}_i$ unchanged on the phone.
+        \STATE Set effective model
+        $\mathbf{w}_i \leftarrow \mathbf{w}_{s,r'}+\mathbf{v}_i$.
+        \STATE Update active region marker $r \leftarrow r'$.
+    \ENDIF
+\ENDIF
+\STATE \textbf{Output:} personalized effective model $\mathbf{w}_i$
+\end{algorithmic}
+\end{algorithm}
 
 \subsection{Personalized Hierarchical FL Protocol}
 
@@ -549,7 +602,8 @@ inference using profile, physiology, check-in, and MEC context.
 separate learning rates on
 $\nabla\mathcal{L}_i(\mathbf{w}_{s,r}+\mathbf{v}_i)$.
 \STATE Transmit only $\tilde{\mathbf{w}}_{s,i}$ and $n_i$ to the MEC.
-\STATE MEC rejects any payload containing $\mathbf{v}_i$ or raw data.
+\STATE MEC validates the update schema and rejects explicit
+$\mathbf{v}_i$ or raw-data fields.
 \STATE MEC computes $\mathbf{w}_{s,\mathrm{region},r} =
 \sum_i(n_i/N)\tilde{\mathbf{w}}_{s,i}$.
 \STATE MEC uploads only the regional shared model and aggregate metadata.
@@ -589,6 +643,35 @@ noise, light, crowd density, or routine disruption. Without the
 credential-derived matrix, the transformed coordinates are difficult to
 interpret semantically even before considering the cryptographic
 protection applied at rest.
+
+\begin{algorithm}[!t]
+\caption{Profile matrix obfuscation and recovery}
+\label{alg:matrix_obfuscation}
+\begin{algorithmic}[1]
+\STATE \textbf{Input:} normalized ASD profile $\mathbf{x}$, password,
+user salt, and fresh DEK
+\STATE Derive seed material
+$s \leftarrow \mathrm{KDF}_{\mathrm{Argon2id}}(\mathrm{password},
+\mathrm{salt})$
+\STATE Use $s$ to seed a deterministic CSPRNG.
+\STATE Generate candidate matrix $\mathbf{M}_u$ until it is full-rank,
+or construct an invertible matrix directly.
+\STATE Compute obfuscated profile $\mathbf{y} \leftarrow
+\mathbf{M}_u\mathbf{x}$.
+\STATE Encrypt $\mathbf{y}$ with the DEK to obtain $C_{\mathbf{y}}$.
+\STATE Derive KEK from the password and encrypt the DEK as
+$C_{\mathrm{DEK}}$.
+\STATE Store only $C_{\mathbf{y}}$, $C_{\mathrm{DEK}}$, and salts in the
+database.
+\STATE \textbf{Recovery:} after authentication, recompute
+$\mathbf{M}_u$ from the same KDF seed.
+\STATE Decrypt $C_{\mathrm{DEK}}$, then decrypt $C_{\mathbf{y}}$.
+\STATE Recover $\mathbf{x} \leftarrow \mathbf{M}_u^{-1}\mathbf{y}$ in
+memory for local inference.
+\STATE Discard plaintext keys, $\mathbf{M}_u$, $\mathbf{y}$, and
+$\mathbf{x}$ when the session no longer needs them.
+\end{algorithmic}
+\end{algorithm}
 
 \subsection{Cryptographic Data Protection}
 \label{sec:crypto}
@@ -647,206 +730,122 @@ devices.
 \section{Implementation}
 % ---------------------------------------------------------------
 
-\subsection{Web Application and Phone-Side AI Prototype}
+\subsection{Implemented Components}
 
-The current application prototype is implemented as a NiceGUI web
-application in Python. Although it is delivered as a web interface for
-demonstration purposes, it follows the same logical boundary as the
-phone client: the user's active check-in context, personalized model
-state, and personal adaptation vector remain in the client session. The
-interface includes authentication, onboarding, manual check-in,
-activity history, settings, and researcher/admin dashboards.
+The prototype is organized into four implementation modules that map
+directly to the architecture. The \texttt{backend} module is the cloud
+layer, implemented with TypeScript, Express, Prisma, and SQLite. It
+handles authentication, encrypted profile synchronization, derived
+check-in storage, admin views, MEC registration, and global/regional
+model endpoints. The \texttt{ui} module is a Python/NiceGUI web
+application that simulates the phone client and executes local
+personalized inference. The \texttt{mec} module is a Docker Compose
+stack containing Mosquitto, a FastAPI MEC API, a context service, and a
+regional federated aggregation service. The \texttt{ml} module contains
+a PyTorch/Flower prototype used to validate the personalized FL logic
+independently from the running web interface.
 
-The check-in screen collects internal state, environmental conditions,
-optional physiological signals, mobility context, and observable
-support signals. These values are converted into a compact feature
-vector $\mathbf{z}$ and evaluated by a lightweight local AI model. This
-prototype model is implemented as a linear personalized model with a
-sigmoid output so that the Personalized Federated Learning mechanism can
-be executed directly inside the web app without requiring a heavy
-runtime. The effective model is $\mathbf{w}_i=\mathbf{w}_s+\mathbf{v}_i$:
-the shared component $\mathbf{w}_s$ is initialized from the MEC
-regional model, and the private component $\mathbf{v}_i$ is initialized
-to zero for new users. After each check-in, the local training step
-updates both components, but only the shared component is published to
-the MEC broker. The personal vector remains in the web session and is
-not included in MQTT or REST payloads.
+\subsection{Startup and Initialization Sequence}
 
-The local feature vector may also include situational context obtained
-from the currently associated MEC node. For example, when the MEC
-reports that a metro line is delayed, that a station is crowded, or
-that a platform is noisy, these values are treated as contextual input
-features on the phone. The MEC does not need access to the user's ASD
-profile or physiological signals to provide this context; it only
-supplies regional environmental information that improves the local
-prediction.
-
-In the prototype, this behavior is visible through the web interface.
-The check-in workflow produces a discomfort estimate immediately after
-the user submits the local context. The model state stored in the client
-session records the shared source, regional identifier, training round,
-and private adaptation vector. These fields allow the interface to show
-whether the shared component came from the MEC, from a cloud fallback,
-or from a deterministic offline default. The same service also prepares
-the shared update payload sent to the MEC, ensuring that $\mathbf{v}_i$
-is excluded before serialization.
-
-If the MEC API is reachable, the client obtains its initial shared
-component from \texttt{/fl/model}. If the MEC is temporarily
-unavailable, the client attempts to retrieve the regional shared model
-from the cloud backend; if both services are unavailable, it falls back
-to a deterministic default shared model so that inference remains
-available offline. When the user later connects to a different MEC
-region, the client replaces only
-$\mathbf{w}_s$ with the new regional shared model and preserves
-$\mathbf{v}_i$, maintaining personalization across region changes.
-
-\subsection{Backend Server and Cloud Coordination Layer}
-
-The central backend server is implemented in TypeScript with Express,
-Prisma, and a SQLite database for the prototype deployment. It exposes a
-REST API for authentication, encrypted profile synchronization,
-privacy-preserving check-in storage, admin analytics, MEC node status,
-and federated model coordination. The backend represents the cloud tier
-of the hierarchy. It stores encrypted transformed ASD profile vectors,
-encrypted DEKs, salts, check-in derived metrics, MEC metadata, regional
-shared model states, and the global shared model state.
-
-Authentication uses Express sessions. At login, the backend verifies the
-password hash, reconstructs the credential-derived matrix, decrypts the
-stored transformed profile, and recovers the normalized ASD vector
-transiently for the authenticated session. The database stores only
-encrypted profile material and encrypted DEKs; no plaintext ASD vector
-is persisted. Check-ins are also reduced before persistence: the backend
-stores derived metrics and prediction results rather than raw contextual
-payloads.
-
-For federated coordination, the backend exposes
+The root launcher \texttt{run\_project.ps1} starts the backend, the UI,
+and the MEC stack when Docker is available. The first component that
+must be available is the cloud backend, because it owns the global
+shared model and encrypted account records. It exposes
 \texttt{/api/federated/global-model},
 \texttt{/api/federated/regional-model}, and
-\texttt{/api/federated/updates}. A new MEC node requests a regional
-model from the cloud. If no regional state exists, it is initialized
-from the global shared model. MEC nodes later submit only regional
-shared weights and sample counts to the cloud. The backend aggregates
-these regional shared models into a global shared component and exposes
-the resulting version for downstream initialization.
+\texttt{/api/federated/updates}. These endpoints are used only for
+shared model coordination; they do not receive raw survey answers,
+physiological streams, smartwatch data, or the private personal
+component $\mathbf{v}_i$.
 
-\subsection{MEC Nodes and Environment Simulation}
+When a MEC node starts, its FastAPI service registers the region and
+requests a regional shared model from the backend. If a model already
+exists for that region, the MEC uses it. If no regional state exists,
+the MEC initializes its regional model from the cloud global model.
+After initialization, the MEC exposes \texttt{/fl/model} to nearby phone
+clients and starts listening for phone-to-MEC shared updates on MQTT.
+The Mosquitto broker routes low-latency context and update messages,
+while the \texttt{mec-fl} service performs regional weighted averaging.
 
-Each MEC node is deployed as a containerized microservices stack
-orchestrated with Docker and Docker Compose. The stack comprises three
-containers: \texttt{mec-mosquitto}, an Eclipse Mosquitto MQTT broker
-responsible for message routing; \texttt{mec-api}, a FastAPI service
-managing control logic, environmental context, and client
-communication; and \texttt{mec-fl}, the federated aggregation service
-implementing FedAvg in NumPy.
+When a phone session starts, the UI authenticates with the backend and
+recovers the encrypted survey profile if one exists. The profile is
+decrypted and de-obfuscated only for the authenticated session. The
+phone then requests $\mathbf{w}_s$ from the nearest MEC through
+\texttt{/fl/model}. If the MEC is unreachable, the phone requests the
+regional shared model from the cloud backend. If both are unavailable,
+the local service uses a deterministic default so that discomfort
+prediction remains available offline. For a new user, the personal
+component $\mathbf{v}_i$ is initialized to zero.
 
-Real-time communication between devices and MEC nodes uses MQTT across
-a structured topic hierarchy. The topic \texttt{tsa/prediction} carries
-risk scores and zone identifiers. The topic \texttt{tsa/fl/update}
-carries only shared model components $\mathbf{w}_s$ and sample sizes
-submitted by devices for aggregation. The topic \texttt{tsa/context/*}
-supports bidirectional environmental data exchange. The topic
-\texttt{tsa/recommendation/\{id\}} delivers personalized routing advice
-to individual clients.
+\subsection{Runtime Phone Workflow}
 
-The MEC layer also provides situational mobility context to the phone.
-Examples include metro or bus delay, station crowding, construction
-noise, platform congestion, incident reports, or the availability of a
-quiet recovery area. These data describe the environment rather than
-the individual user. They are sent from the MEC to the phone and are
-then appended locally to the phone feature vector before inference. In
-other words, the MEC enriches the local model input with regional
-context, but the final discomfort prediction still runs on the phone
-alongside the private ASD profile, physiological data, and personal
-adaptation vector. This preserves the privacy boundary while allowing
-the model to react to events such as a delayed metro, an unusually dense
-station, or a noisy platform.
+During use, the phone-side application performs four local operations.
+First, onboarding converts the sensory and behavioral survey into the
+profile vector $\mathbf{x}$. Second, check-ins collect current internal
+state, local context, and optional wearable signals. In a smartphone
+deployment, BPM, heart-rate variability, activity level, sleep quality,
+or similar data can be read from a paired smartwatch with user
+permission. Third, the phone obtains regional situational context from
+the MEC, such as metro delay, platform crowding, construction noise, or
+quiet-area availability. Fourth, the local model evaluates
+$\mathbf{w}_i=\mathbf{w}_s+\mathbf{v}_i$ on the combined feature vector
+and produces a discomfort estimate.
 
-A key implementation constraint addressed in the \texttt{mec-fl}
-service is enforcing the personalized FL privacy boundary. The service
-accepts \texttt{shared\_weights} or \texttt{sharedWeights} fields but
-rejects any payload containing a personal component. The received shared
-model vectors are reconstructed from JSON lists and aggregated using the
-weighted FedAvg computation defined in~(10). After aggregation, the MEC
-updates its local \texttt{/fl/model} endpoint, publishes the new
-regional shared model to subscribed phones, and forwards only aggregate
-regional metadata to the cloud backend.
+After a check-in, the phone may perform a local personalization step.
+Both $\mathbf{w}_s$ and $\mathbf{v}_i$ are updated locally, but only the
+shared component is prepared for communication. The service serializes a
+payload containing shared weights, sample count, region identifier, and
+coarse metadata. It excludes raw check-in values, raw wearable streams,
+the ASD profile vector, and the personal component $\mathbf{v}_i$.
+Smartwatch integration therefore enriches local inference without
+changing the external privacy boundary.
 
-Since physical sensor infrastructure was not available for evaluation,
-a Station Controller module was developed to simulate real-time
-environmental conditions at transit stations. This simulator generates
-synthetic streams of noise level, crowd density, and service delay
-measurements published to the \texttt{tsa/context/*} MQTT topics and
-consumed by MEC node services and mobile clients subscribed to their
-current location.
+\subsection{MEC Runtime and Regional Context}
 
-\subsection{Federated Learning Prototype and Cloud Coordination}
+At runtime, the MEC performs two jobs. Its context services collect or
+simulate regional mobility conditions and publish them on
+\texttt{tsa/context/*}. In the prototype, a Station Controller simulates
+noise level, crowd density, and service delay because physical station
+sensors were not available. Phone clients subscribe to the context
+topics relevant to their current region and append these values locally
+before inference.
 
-A standalone federated learning prototype was implemented in Python
-using PyTorch and Flower to validate the privacy-preserving learning
-workflow independently of the deployed MEC stack. Three model roles
-were implemented. The first is \texttt{PhoneModel}, trained locally on
-each simulated device using private synthetic data representing
-mobility-related and sensory-related preferences. The second is
-\texttt{GlobalModel}, which shares the same architecture as
-\texttt{PhoneModel} and is aggregated by the Flower server via FedAvg.
-The third is \texttt{MECModel}, a lightweight edge model designed to
-operate on non-identifying aggregate summaries rather than raw user
-profiles.
+The MEC also performs regional aggregation. Phones publish shared
+updates on \texttt{tsa/fl/update}. The \texttt{mec-fl} service validates
+the update schema, accepting fields such as \texttt{shared\_weights} or
+\texttt{sharedWeights} and rejecting payloads that explicitly contain
+personal-component or raw-data fields. This is protocol enforcement, not
+a proof against malicious encoding inside nominal shared weights. The
+received shared model vectors are reconstructed from JSON lists and
+aggregated using the weighted FedAvg computation defined in~(10). The
+resulting regional shared model is exposed again through
+\texttt{/fl/model} for phone initialization and refresh.
 
-On the client side, the Flower \texttt{NumPyClient} interface implements
-local personalized training and submission of protected shared updates
-to the server. Parameter clipping and Gaussian noise injection are
-included as optional DP-style hardening for experiments where update
-inference risk must be reduced.
-The implementation mirrors the deployed web-app logic: each simulated
-client keeps a private $\mathbf{v}_i$ initialized to zero, computes
-gradients on $\mathbf{w}_s+\mathbf{v}_i$, updates both local
-components, and returns only the clipped/noised shared component. Only
-coarse training metrics are exposed to the server; no user identifier,
-raw questionnaire value, or personal component is transmitted. The
-server coordinates aggregation rounds using the \texttt{FedAvg}
-strategy and updates the global shared model without accessing any
-private local dataset. The \texttt{MECModel} establishes the code
-structure required for future edge-side learning and local decision
-support. Current training data is synthetic, defining the input feature
-structure required for future integration with the onboarding
-questionnaire and sensor streams.
+\subsection{Cloud Runtime and Synchronization}
 
-The full system coordinates four implementation environments:
-TypeScript/Express for the cloud backend, Python/NiceGUI for the
-interactive client prototype, Python/FastAPI and MQTT services for MEC
-nodes, and PyTorch/Flower for the federated learning simulation.
-Inter-service communication uses MQTT for low-latency phone--MEC
-updates and REST for account management, encrypted profile recovery,
-cloud model initialization, and upstream regional model synchronization.
+The backend receives only regional shared models and aggregate metadata
+from MEC nodes through \texttt{/api/federated/updates}. It uses these
+regional submissions to update the global shared model and exposes the
+new version for downstream MEC initialization. Separately, it manages
+encrypted profile synchronization. Authentication uses Express sessions:
+the backend verifies the password hash, reconstructs credential-derived
+material, decrypts the DEK, and recovers the transformed profile for the
+authenticated session. The database stores encrypted profile material,
+encrypted DEKs, salts, derived check-in metrics, MEC metadata, regional
+shared model states, and the global shared model state. It does not
+store plaintext ASD profiles or phone-local personal model components.
 
-\subsection{Operational Stack and Startup Flow}
+\subsection{Standalone Federated Learning Validation}
 
-The project repository is organized into four main folders:
-\texttt{backend}, \texttt{ui}, \texttt{mec}, and \texttt{ml}. The
-\texttt{backend} folder contains the Express/Prisma cloud API. The
-\texttt{ui} folder contains the NiceGUI web application that simulates
-the phone client and runs the personalized model locally. The
-\texttt{mec} folder contains the Docker Compose stack for edge
-execution, including Mosquitto, the MEC API, the context service, and
-the regional FL aggregator. The \texttt{ml} folder contains the
-Flower/PyTorch learning prototype used to validate the training logic
-independently from the live web interface.
-
-A root launcher script, \texttt{run\_project.ps1}, starts the backend,
-the UI, and the MEC Docker stack when Docker is available. The startup
-sequence follows the learning hierarchy. First, the backend exposes the
-global shared model. Second, a new MEC node starts and requests its
-regional model from the backend. If the backend has no regional state
-for that MEC, the node initializes from the global shared component.
-Third, a phone session starts and requests the current shared model from
-the nearest MEC. If the MEC is not reachable, the phone requests the
-regional shared model from the cloud backend. If neither service is
-reachable, it uses a local default shared component so that inference
-continues in degraded mode. When the MEC becomes reachable again, the phone can refresh
-$\mathbf{w}_s$ while keeping $\mathbf{v}_i$ unchanged.
+The \texttt{ml} module validates the learning logic outside the live
+MEC stack. It uses PyTorch and Flower with simulated clients. Each
+client keeps a private $\mathbf{v}_i$, computes gradients on
+$\mathbf{w}_s+\mathbf{v}_i$, updates both local components, and returns
+only the protected shared component. The server coordinates aggregation
+rounds using FedAvg and updates the global shared model without
+accessing any local dataset. This standalone simulation is not a
+replacement for the MEC runtime; it is a controlled validation of the
+personalized FL update rule, aggregation behavior, and privacy boundary.
 
 \begin{table*}[!t]
     \centering
@@ -929,8 +928,7 @@ accountant is integrated.
 
 The federated learning prototype was evaluated locally using Flower's
 simulation runtime. The objective of this evaluation was not to measure
-final predictive performance on a real ASD mobility dataset, which was
-not yet available, but to validate the execution of the complete
+final predictive performance on a real ASD mobility dataset, which is yet to be done, but to validate the execution of the complete
 privacy-preserving training pipeline. The experiment verified that
 simulated phone clients can train locally, protect their model updates,
 transmit only perturbed parameters, and contribute to a global FedAvg
@@ -1045,13 +1043,16 @@ and the backend stores cloud and regional shared-model metadata.
 
 Because no real participant study has yet been conducted, the current
 data are prototype data generated by scripted phone clients, manual web
-check-ins, and MEC environment simulations. These data exercise the
-same communication and storage paths intended for deployment: check-ins
-produce local discomfort predictions, phone clients generate shared
-model updates, MEC nodes aggregate regional shared models, and the
-cloud backend records global/regional model state. This provides
-evidence of technical feasibility, but it should not be interpreted as
-clinical validation of ASD stress prediction.
+check-ins, and MEC environment simulations. The synthetic check-in,
+context, and model-update examples used for these tests were generated
+with AI assistance and then manually reviewed to ensure that they
+matched the expected feature structure of the prototype. These data
+exercise the same communication and storage paths intended for
+deployment: check-ins produce local discomfort predictions, phone
+clients generate shared model updates, MEC nodes aggregate regional
+shared models, and the cloud backend records global/regional model
+state. This provides evidence of technical feasibility, but it should
+not be interpreted as clinical validation of ASD stress prediction.
 
 \begin{table}[!t]
     \centering
@@ -1105,10 +1106,11 @@ the software pipeline, but not to draw conclusions about real-world
 prediction accuracy. Second, differential privacy is treated as an
 optional update-hardening mechanism rather than a core requirement of
 the architecture; no formal privacy budget $(\varepsilon, \delta)$ has
-yet been calibrated. Third, the MEC model is currently evaluated
-separately from the Flower aggregation loop. Future work should
-integrate MEC-level aggregation directly into the hierarchical
-Cloud--MEC--Device workflow described in Section~\ref{sec:architecture}.
+yet been calibrated. Third, the current evaluation focuses on
+functional correctness and architectural feasibility. A larger benchmark
+should next quantify the benefit of the full Cloud--MEC--Device
+hierarchy against cloud-only, MEC-only, and purely local baselines under
+different mobility regions and network conditions.
 
 Despite these limitations, the prototype demonstrates that the proposed
 architecture can support local training, protected update transmission,
@@ -1175,16 +1177,26 @@ Future work will focus on training and evaluating the model with
 ethically collected ASD mobility data, calibrating formal differential
 privacy guarantees, strengthening secure aggregation and client
 attestation, and measuring prediction accuracy, latency, usability, and
-perceived safety in realistic mobility scenarios.
+perceived safety in realistic mobility scenarios. Another practical
+extension is deeper smartwatch integration, including continuous BPM,
+heart-rate variability, activity, sleep, and stress proxy signals, while
+preserving the same local-only processing boundary for raw wearable
+data.
 
 
 \section*{Acknowledgment}
 
-The authors acknowledge the use of AI-based writing assistance only for
-English formulation, grammar, and clarity improvements. The technical
-content, system design, interpretation, and final manuscript decisions
-were reviewed and validated by the authors, who remain fully responsible
-for the submitted work.
+The authors acknowledge the use of OpenAI ChatGPT and OpenAI Codex for
+formal English formulation, grammar, clarity, and LaTeX presentation
+checks. These tools were also used to generate synthetic prototype test
+examples for check-ins, context values, and model-update payloads; these
+examples were manually reviewed and used only to exercise the software
+pipeline. The authors evaluated all suggestions and generated examples
+before accepting or modifying them. All corrections and wording changes
+retained in the final manuscript faithfully reflect the authors'
+original work, technical design, and interpretation. No aspect of the
+research problem, system architecture, implementation, analysis, or
+scientific interpretation of this report was generated by an AI tool.
 
 
 % ---------------------------------------------------------------
@@ -1192,33 +1204,40 @@ for the submitted work.
 \begin{thebibliography}{1}
 
 \bibitem{maclennan2023}
-K.~MacLennan et al., ``Sensory Experiences in Public Spaces: A
-Qualitative Study,'' \textit{Autism}, vol.~27, no.~4, 2023.
+K.~MacLennan et al., ``It is a big spider web of things: Sensory
+experiences of autistic adults in public spaces,'' \textit{Autism in
+Adulthood}, vol.~5, no.~4, pp.~411--422, 2023, doi:
+10.1089/aut.2022.0024.
 
-\bibitem{mirri2019}
-S.~Mirri, C.~Prandi, and P.~Salomoni, ``How do sensory features of
-places impact on spatial exploration of people with autism? A user
-study,'' \textit{Information Technology and Tourism}, vol.~20,
-pp.~1--18, 2019.
+\bibitem{cena2023}
+F.~Cena, N.~Mauro, and A.~Rapp, ``How do sensory features of places
+impact on spatial exploration of people with autism? A user study,''
+\textit{Inf. Technol. Tourism}, vol.~25, no.~1,
+pp.~105--132, 2023, doi: 10.1007/s40558-023-00244-1.
 
 \bibitem{garroussi2025}
 H.~Garroussi et al., ``A systematic review of data privacy in
-Mobility-as-a-Service (MaaS),'' \textit{Transportation Research
-Interdisciplinary Perspectives}, 2025.
+Mobility-as-a-Service (MaaS),'' \textit{Transp. Res. Interdiscip.
+Perspect.}, vol.~31, Art.~no.~101254, 2025, doi:
+10.1016/j.trip.2024.101254.
 
 \bibitem{beck2025}
-S.~J.~Beck et al., ``Guidelines for the Creation of Accessible Consent
-Materials and Procedures,'' \textit{Autism in Adulthood}, 2025.
+K.~B.~Beck et al., ``Guidelines for the creation of accessible consent
+materials and procedures: Lessons from research with autistic people and
+people with intellectual disability,'' \textit{Autism in Adulthood},
+early access, 2025, doi: 10.1089/aut.2024.0263.
 
 \bibitem{adnan2022}
-N.~Adnan et al., ``Federated Learning with Differential Privacy for
-Medical Data,'' \textit{Scientific Reports}, vol.~12, no.~1, 2022.
+M.~Adnan, S.~Kalra, J.~C.~Cresswell, G.~W.~Taylor, and H.~R.~Tizhoosh,
+``Federated learning and differential privacy for medical image
+analysis,'' \textit{Sci. Rep.}, vol.~12, Art.~no.~1953, 2022,
+doi: 10.1038/s41598-022-05539-7.
 
 \bibitem{alwarafy2020}
 A.~Alwarafy, K.~A.~Al-Thelaya, M.~Abdallah, J.~Schneider, and
-M.~Hamdi, ``A survey on security and privacy issues in edge computing
-assisted Internet of Things,'' \textit{IEEE Internet of Things
-Journal}, vol.~8, no.~6, pp.~4004--4022, 2020.
+M.~Hamdi, ``A survey on security and privacy issues in edge-computing-
+assisted Internet of Things,'' \textit{IEEE Internet Things J.},
+vol.~8, no.~6, pp.~4004--4022, 2021, doi: 10.1109/JIOT.2020.3015432.
 
 \end{thebibliography}
 
