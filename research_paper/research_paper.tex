@@ -1,0 +1,655 @@
+\documentclass[conference]{IEEEtran}
+
+% ── Packages ──────────────────────────────────────────────────────────────
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{cite}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[table]{xcolor}
+% ── Placeholder colour ────────────────────────────────────────────────────
+\newcommand{\placeholder}[1]{\textcolor{gray}{\textit{[#1]}}}
+
+% ── Math shorthands ───────────────────────────────────────────────────────
+% Preference vector and transformation matrix notation
+\newcommand{\xvec}{\boldsymbol{x}}
+\newcommand{\yvec}{\boldsymbol{y}}
+\newcommand{\Ku}{K_{u}}
+\newcommand{\Kuinv}{K_{u}^{-1}}
+
+% ── Document ──────────────────────────────────────────────────────────────
+\begin{document}
+
+\title{Privacy-Preserving Intelligent Mobility for Individuals with
+       Autism Spectrum Disorder}
+
+\author{
+  \IEEEauthorblockN{Ahmed Aouab Admou, Yahya Misbahi, Titouan Mathieu,
+                    Nawfal El-Hammadi, Toumany Doumbouya}
+  \IEEEauthorblockA{National Institute of Applied Sciences\\
+                    Toulouse, France}
+}
+
+\maketitle
+
+% ─────────────────────────────────────────────────────────────────────────
+\begin{abstract}
+ \placeholder{
+to be completed.}
+\end{abstract}
+
+\begin{IEEEkeywords}
+
+\end{IEEEkeywords}
+
+% ─────────────────────────────────────────────────────────────────────────
+\section{Introduction}
+
+Smart City infrastructure increasingly relies on pervasive sensing and
+artificial intelligence to optimise urban mobility. These systems,
+however, are designed for the general population and overlook the
+specific needs of neurodivergent users. For individuals with Autism
+Spectrum Disorder (ASD), exposure to fluctuating noise levels, high
+crowd density, and unpredictable route changes causes significant
+stress. GPS navigation applications optimise for travel time or distance
+without accounting for the sensory and cognitive factors that determine
+whether a route is safe and manageable for an ASD user~\cite{maclennan2023}.
+
+Researchers have investigated personalised and sensory-aware routing in
+urban contexts. Mirri et al.~\cite{mirri2019} developed the PIUMA
+application, which indexes locations according to sensory features and
+allows users to filter routes based on an individual sensory profile.
+
+In parallel, privacy-preserving machine learning frameworks have been proposed to handle sensitive user
+data without centralised exposure. Adnan et al.~\cite{adnan2022} showed
+that federated learning combined with differential privacy preserves model
+utility at an accuracy reduction of approximately one to two percent in
+medical and mobility contexts. Alwarafy et al.~\cite{alwarafy2020}
+surveyed security vulnerabilities in Internet of Things systems assisted
+by edge computing and confirmed that local data processing reduces the
+attack surface. Garroussi et al.~\cite{garroussi2025} reviewed data
+privacy in Mobility-as-a-Service platforms and identified centralised
+cloud architectures as a primary structural weakness.
+
+No existing system combines ASD-tailored personalised routing with the
+capacity to protect the user profile end-to-end. Current mobility
+platforms store sensitive data in centralised architectures that expose
+raw records during transmission and at rest~\cite{garroussi2025}. Consent
+interfaces are frequently written in legal language that is inaccessible
+to many neurodivergent users, so users cannot give fully informed
+consent~\cite{beck2025}. The effect of user-specific vector obfuscation on
+routing quality has not been evaluated in an ASD context. Designing a
+system that satisfies both personalisation requirements and
+privacy-by-design principles for this population therefore remains an
+open problem.
+
+This project aimed to design and implement a privacy-preserving
+intelligent mobility system for individuals with ASD. We aimed to
+represent each user's sensory sensitivities as a normalised preference
+vector $\xvec = (x_1, x_2, \ldots, x_n)$ derived from an ASD-specific
+onboarding questionnaire, and to integrate this vector into a weighted
+graph routing algorithm that penalises aversive environmental features.
+To protect the stored profile, we aimed to transform $\xvec$ before
+storage using a user-specific matrix $\Ku$, such that $\yvec = \Ku
+\cdot \xvec$ is held in the database instead of the original vector.
+We further aimed to derive $\Ku$ from a credential-based key derivation
+function so that the transformation matrix is never persisted. The
+vector $\xvec = \Kuinv \cdot \yvec$ is reconstructed transiently in
+memory only during route computation. These mechanisms were designed as
+part of a broader privacy-by-design architecture that incorporates
+federated learning, differential privacy, transport-layer encryption,
+and a simplified consent interface.
+
+% ─────────────────────────────────────────────────────────────────────────
+\section{Detailed Article Outline}
+
+% ─────────────────────────────────────────────────────────────────────────
+\section{Background and Related Work}
+\label{sec:background}
+
+\subsection{ASD and Urban Mobility Barriers}
+The rapid expansion of Smart City infrastructures, characterized by the omnipresence of Internet of Things (IoT) sensors and Artificial Intelligence (AI) analytics, has promised a paradigm shift in urban mobility optimization. However, the foundational design principles of these systems frequently operate under a neurotypical bias, assuming that all citizens possess uniform sensory processing and cognitive resilience to the chaotic environmental stimuli of a modern metropolis. For individuals with Autism Spectrum Disorder (ASD), a population marked by profound distinctive sensory experiences, the urban landscape is not merely a geometric space to be traversed but a high-stakes "sensoryscape" that can either facilitate or fundamentally disable their community participation.
+
+Autism Spectrum Disorder is a heterogeneous neurodevelopmental disorder characterized by persistent challenges in social communication and interaction, alongside restricted and repetitive patterns of behavior. Beyond these primary diagnostic markers, a key characteristic of the ASD experience affecting more than 90\% of the population is atypical processing of sensory stimuli. This includes both hyper-reactivity (over-responsiveness) and hyporeactivity (under-responsiveness) to environmental input, which directly dictates how individuals perceive and move through public spaces.The urban environment serves as a constant source of fluctuating sensory data. In contrast, for individuals with ASD, these stimuli can be overwhelming, leading to sensory overload, acute anxiety, physical fatigue, and even complete breakdown in spatial navigation skills. Research indicates that these aversions are not merely preferences but significant barriers to mobility that influence the daily decisions of neurodivergent citizens, often leading to self-isolation or a strict avoidance of unfamiliar areas.
+
+\begin{table}[ht]
+    \vspace{4pt}
+    \centering
+    \renewcommand{\arraystretch}{1.4}
+    \scriptsize
+    \begin{tabularx}{\columnwidth}{
+        >{\raggedright\bfseries}p{1.4cm}
+        >{\raggedright}p{2.9cm}
+        >{\raggedright\arraybackslash}X}
+        \toprule
+        \rowcolor{gray!15}
+        \textbf{Dimension} &
+        \textbf{Urban Stimuli} &
+        \textbf{Impact on ASD Mobility} \\
+        \midrule
+        Auditory &
+        Sirens, construction, announcements, echoes &
+        Induces panic, blocks navigation cues, triggers sensory
+        shutdown~\cite{maclennan2023,beck2025}. \\
+        \midrule
+        Visual &
+        Reflective glass, flickering LEDs, high-contrast sunlight &
+        Causes photophobia, disorientation, and visual
+        vertigo~\cite{maclennan2023,beck2025}. \\
+        \midrule
+        Social &
+        Peak-hour crowds, narrow sidewalks, queues &
+        Elevates anxiety, oppression, and
+        claustrophobia~\cite{maclennan2023,beck2025}. \\
+        \midrule
+        Olfactory &
+        Exhaust, food waste, cleaning chemicals &
+        Triggers nausea and avoidance; creates sensory
+        walls~\cite{maclennan2023,beck2025}. \\
+        \midrule
+        Spatial &
+        Large plazas, narrow tunnels, complex layouts &
+        Disorientation by scale or trapped by
+        confinement~\cite{maclennan2023,beck2025}. \\
+        \midrule
+        Thermal &
+        Unventilated transit, asphalt heat islands &
+        Disrupts thermal regulation, worsens executive
+        dysfunction~\cite{maclennan2023,beck2025}. \\
+        \bottomrule
+    \end{tabularx}
+    \vspace{4pt}
+    \caption{Urban sensory load and ASD mobility
+    barriers~\cite{maclennan2023,beck2025}.}
+    \label{tab:sensory}
+    \vspace{4pt}
+\end{table}
+Studies have identified six distinct characteristics of the urban sensoryscape that influence accessibility for neurodivergent populations. These factors include the intensity and duration of input, the physical perception of space (openness vs. confinement), and the availability of "recovery spaces"—quiet zones where people can briefly retreat to de-escalate from sensory overload. Without the conscious integration of these aspects into mobility systems, the "simulation-to-reality gap" persists, where the theoretical benefit of an AI-driven mobility model does not transfer into a safe or controllable experience for the user.
+
+\subsection{Sensory-Aware Navigation Applications}
+To mitigate the sensory barriers inherent in modern cities, researchers have developed specialized navigation tools designed to prioritize cognitive comfort over mere speed. The trajectory of this research has moved from basic accessibility mapping for physical disabilities to complex, multi-modal systems tailored for neurodivergence.
+
+\subsubsection{The PIUMA Project and Personalized Urban Mapping}
+The Personalized Interactive Urban Maps for Autism (PIUMA) project represents the current state of the art in inclusive navigation research. PIUMA evolved from earlier systems like mPASS (mobile Pervasive Accessibility Social Sensing), which utilized both crowdsourced data and smartphone sensors (accelerometers, gyroscopes) to identify architectural barriers like steep ramps or broken elevators.
+
+The PIUMA system architecture relies on three foundational pillars:
+\begin{itemize}
+    \item Personalization: Each user provides a sensory profile, detailing their specific aversions and preferences across multiple modalities.
+    \item Crowdmapping: Since real-time sensory data is rarely available through public APIs, PIUMA leverages a community-driven paradigm where ASD users and their caregivers rate urban locations on a 1–5 scale for features like noise and crowding.
+    \item Assistive Routing: The system employs recommendation algorithms to suggest routes and destinations that match the user’s "internal state" (e.g., current stress level) and environmental requirements.
+\end{itemize}
+
+\subsubsection{Comparative Analysis of Assistive Navigation Frameworks} 
+\   While PIUMA is the primary referent, other systems like Maps4all have explored similar crowdmapping mechanisms to fill the "data void" regarding urban sensory characteristics. These applications demonstrate that neurodivergent users prefer map-based interfaces over text-based ones, as the visual representation aligns better with the cognitive processing styles common in ASD.
+
+\begin{table}[ht]
+    \vspace{4pt}
+    \centering
+    \renewcommand{\arraystretch}{1.4}
+    \scriptsize
+    \begin{tabularx}{\columnwidth}{
+        >{\raggedright\bfseries}p{1.1cm}   
+        >{\raggedright}p{1.7cm}             
+        >{\raggedright}p{1.6cm}             
+        >{\raggedright\arraybackslash}X}    
+        \toprule
+        \rowcolor{gray!15}
+        \textbf{Project} &
+        \textbf{Core Mechanism} &
+        \textbf{Targeted Disability} &
+        \textbf{Key Innovations} \\
+        \midrule
+        mPASS &
+        Crowdsourcing + Pervasive Sensing &
+        Physical Mobility (Reduced) &
+        Architectural barrier mapping; multi-source data fusion. \\
+        \midrule
+        PIUMA &
+        Personalized Recommender Systems &
+        ASD (Mid-to-High Functioning) &
+        SPOIs; idiosyncratic aversion filtering; internal state awareness. \\
+        \midrule
+        Maps4all &
+        Crowdmapping Paradigm &
+        General Cognitive / ASD &
+        Sensory feature indexing (1--5 Likert scale); tourist experience focus. \\
+        \midrule
+        CARES &
+        Inclusive Personalized Systems &
+        ASD &
+        Enhanced focus on social participation and quality of life. \\
+        \bottomrule
+    \end{tabularx}
+    \vspace{4pt}
+    \caption{Comparison of inclusive mobility and accessibility applications for ASD and reduced mobility users.}
+    \label{tab:inclusive_apps_comparative_analysis}
+\end{table}
+The consensus across these studies is that the explicit presentation of sensory information is a transformative factor in the user's autonomy. For many individuals with ASD, the ability to "see" the sensory profile of a place before visiting reduces the anxiety associated with routine breakdowns—unpredictable events like a canceled bus or a closed road—which are otherwise debilitating.
+
+\subsection{Privacy Risks in Mobility Data}
+The high degree of personalization required for sensory-aware navigation necessitates the collection of extremely sensitive data. For a mobility system to effectively route an ASD user, it must maintain a detailed profile of their medicalized aversions, their historical movement patterns, and potentially their real-time bio-data (e.g., heart rate or skin conductance). This creates a severe privacy vulnerability in an era where data is frequently commodified or mismanaged.
+
+A comprehensive systematic literature review (SLR) of 87 relevant research papers published between 2017 and 2025 identifies Mobility-as-a-Service (MaaS) platforms as a major site of privacy risk. Most current MaaS architectures are centralized, meaning all user data flows to and is stored in a single cloud repository. This structure presents several critical weaknesses:
+\begin{itemize}
+    \item Exposure at Rest and in Transit: Sensitive records are vulnerable to unauthorized access during transmission and while stored on centralized servers.
+    \item Profiling and Inference: Sophisticated machine learning models can analyze mobility data to infer a user’s disability status, employment, and social vulnerabilities even if direct identifiers are removed.
+    \item Third-Party Access: Data is often shared among multiple ecosystem actors—transit providers, city agencies, and commercial partners—frequently violating the principle of data minimization.
+\end{itemize}
+
+For the neurodivergent population, the risks of data exposure extend beyond simple identity theft to include structural discrimination and social stigma. Historical evidence warns that the federal collection of disability data has, in the past, been weaponized against these populations, leading to harms such as forced sterilization or exclusion from services. In the modern context, "Big Data" in healthcare and mobility raises the risk of "inferred disclosure," where an individual's neurodivergent status is revealed through their preference for quiet routes or frequent visits to clinics.
+\subsection{Privacy-by-Design Approaches}
+
+Addressing the inherent tension between personalization and privacy requires a "Privacy-by-Design" (PbD) approach, where security is not an afterthought but a foundational requirement of the system architecture. Current research points toward decentralized processing and sophisticated mathematical obfuscation as the primary defenses.
+\subsubsection{Federated Learning and Differential Privacy}
+    Federated Learning (FL) represents a shift toward decentralized AI, where models are trained on the user's device (at the "edge"), and only localized model updates are sent to a central server. When combined with Differential Privacy (DP)—the addition of statistical "noise" to the data—these frameworks can achieve robust protection with a negligible reduction in model accuracy (typically 1–2\%).This combination is particularly effective for mobility data because it allows the system to "learn" the optimal routes for a collective population of ASD users without ever viewing the individual, raw trajectories of any single user. Studies suggest that "wavelet-based" transformations in DP are highly accurate in high-privacy settings, ensuring that individual data points remain indistinguishable within the broader dataset.
+\subsubsection{User-Specific Vector Obfuscation and Matrix Transformation}
+A novel approach for protecting the specific sensory preference profile involves representing sensitivities as a normalized vector $x = (x_1, x_2, \dots, x_n)$, which is then mathematically transformed before storage. To avoid the persistence of the raw profile, the system applies a user-specific matrix $K_u$ derived from a credential-based key derivation function (KDF).The transformation follows the linear model $y = K_u \cdot x$, where only the obfuscated vector $y$ is stored in the database. The original vector $x$ is only reconstructed transiently in the system's memory ($x = K_u^{-1} \cdot y$) during the actual computation of a route. Since $K_u$ is never stored and is generated only upon a successful login, the raw sensory profile is inaccessible even if the central database is compromised.This methodology, often called "matrix masking," aligns with the broader move toward verifiable matrix multiplication in intelligent vehicle systems. It ensures that the specific "aversions" of an autistic individual—which are effectively a proxy for their medical diagnosis—remain under their absolute autonomy
+
+\subsubsection{Edge Computing }
+The integration of edge computing into the mobility IoT stack further reduces the attack surface. By processing sensory data locally (e.g., within the smartphone or a smart bus stop), the system minimizes the transmission of raw, identifiable data across the network. This local processing is vital for real-time bio-sensing, where a wearable device detecting a spike in a user's stress level can trigger immediate local route adjustments without broadcasting the user’s physiological vulnerability to the cloud.
+% ---------------------------------------------------------------
+\section{System Architecture and Mathematical Framework}
+% ---------------------------------------------------------------
+\label{sec:architecture}
+\subsection{Overview of the Three-Tier Hierarchical Architecture}
+
+The proposed system is organized into three computational tiers that
+interact bidirectionally: the user device (smartphone), Multi-access
+Edge Computing (MEC) nodes deployed at transport infrastructure
+locations, and a central cloud server. This hierarchy is denoted
+Cloud~$\leftrightarrow$~MEC~$\leftrightarrow$~Device. Each tier is
+responsible for a distinct scope of learning and inference. The device
+tier performs real-time, personalized discomfort prediction and local
+model fine-tuning using data that never leaves the hardware. The MEC
+tier aggregates model weights from multiple devices within a geographic
+region and specializes the shared model to local environmental patterns
+such as infrastructure layout, typical crowd dynamics, and regional
+climate. The cloud tier aggregates updates from all MEC nodes to
+maintain a global model capturing broad ASD mobility behaviors across
+the entire user population, and distributes generalized model
+initializations back down to MEC nodes and devices. No raw user data
+propagates beyond the device at any point in this pipeline.
+
+\subsection{ASD Profile Representation and Input Feature Engineering}
+
+Each user's sensory profile is represented as a normalized vector
+\begin{equation}
+    \mathbf{x} = (x_1, x_2, \dots, x_n)^\top \in [0,1]^n
+\end{equation}
+where each component $x_i$ encodes a scalar sensitivity score for a
+distinct sensory or behavioral dimension, including noise tolerance,
+light sensitivity, crowd density tolerance, susceptibility to routine
+disruption, and transition difficulty. This vector is derived from a
+structured onboarding questionnaire administered at first launch. The
+vector $\mathbf{x}$ is computed locally and persists only on the device
+in encrypted form, as described in Section~\ref{sec:crypto}.
+
+At inference time, the profile vector is combined with a real-time
+contextual feature vector
+\begin{equation}
+    \mathbf{c} = (c_1, c_2, \dots, c_m)^\top \in \mathbb{R}^m
+\end{equation}
+where contextual features include ambient noise level, estimated crowd
+density at the current location, weather conditions, heart rate acquired
+from a paired wearable device, time of day, and current transit mode.
+The composite input to the on-device model is the concatenated feature
+vector
+\begin{equation}
+    \mathbf{z} = [\mathbf{x}^\top \mid \mathbf{c}^\top]^\top
+    \in \mathbb{R}^{n+m}
+\end{equation}
+The on-device model $f_{\boldsymbol{\theta}}$ maps $\mathbf{z}$ to a
+predicted discomfort score
+\begin{equation}
+    d = f_{\boldsymbol{\theta}}(\mathbf{z}) \in [0, 1]
+\end{equation}
+where $d$ represents the estimated probability of an imminent sensory
+overload or stress episode. The model architecture is a compact
+feedforward neural network composed of a fully connected layer, a ReLU
+activation, and a final classification layer, selected to remain
+suitable for local simulation and on-device execution.
+
+\subsection{On-Device Local Training}
+
+Each device maintains a local copy of the model with parameters
+$\mathbf{w}_i^{(t)}$ at round $t$. The device performs $E$ local
+gradient descent steps over its accumulated local dataset $\mathcal{D}_i$
+using cross-entropy loss $\mathcal{L}$ over discretized discomfort
+labels:
+\begin{equation}
+    \mathbf{w}_i^{(t+1)} = \mathbf{w}_i^{(t)}
+    - \eta\,\nabla_{\mathbf{w}}\mathcal{L}(\mathbf{w}_i^{(t)};\,\mathcal{D}_i)
+\end{equation}
+where $\eta$ is the local learning rate. After $E$ steps, the device
+applies a privacy protection mechanism to the updated parameters before
+transmission: the weight vector is clipped to a maximum
+$\ell_2$-norm $C$, and calibrated Gaussian noise is added:
+\begin{equation}
+    \tilde{\mathbf{w}}_i^{(t+1)} =
+    \mathrm{clip}\!\left(\mathbf{w}_i^{(t+1)},\,C\right)
+    + \mathcal{N}\!\left(\mathbf{0},\,\sigma^2\mathbf{I}\right)
+\end{equation}
+The perturbed weights $\tilde{\mathbf{w}}_i^{(t+1)}$ together with the
+local sample count $n_i = |\mathcal{D}_i|$ are transmitted to the
+nearest MEC node. The raw dataset $\mathcal{D}_i$ is never transmitted,
+and only coarse training metrics are exposed to upstream services.
+
+\subsection{Hierarchical Federated Aggregation}
+
+\textbf{MEC-level aggregation.}
+A MEC node $j$ collects perturbed model weights from all $K_j$ devices
+within its coverage area in a given aggregation round. It computes a
+weighted average of the received weights proportional to each device's
+local dataset size:
+\begin{equation}
+    \mathbf{w}_{\mathrm{MEC},j} =
+    \frac{\displaystyle\sum_{i=1}^{K_j} n_i\,\tilde{\mathbf{w}}_i}
+         {\displaystyle\sum_{i=1}^{K_j} n_i}
+\end{equation}
+The MEC node applies this aggregated model as the updated regional
+initialization and distributes it back to its associated devices.
+
+\textbf{Cloud-level aggregation.}
+The central cloud server receives aggregated weights from all $J$ MEC
+nodes and performs a second-level weighted aggregation proportional to
+the total number of device-samples contributed per MEC node:
+\begin{equation}
+    \mathbf{w}_{\mathrm{cloud}} =
+    \frac{\displaystyle\sum_{j=1}^{J} N_j\,\mathbf{w}_{\mathrm{MEC},j}}
+         {\displaystyle\sum_{j=1}^{J} N_j}
+\end{equation}
+where $N_j = \sum_{i \in j} n_i$ is the total number of samples
+aggregated under MEC node $j$. The updated global model is broadcast to
+all MEC nodes, which redistribute updated initializations to their
+associated devices. This two-stage aggregation structure allows the
+global model to capture population-wide ASD mobility patterns while
+preserving regional specialization at the MEC level.
+
+\subsection{Profile Vector Obfuscation}
+
+To allow cloud-side synchronization of the ASD profile across user
+devices without exposing the raw sensitivity vector, a user-specific
+linear obfuscation is applied before any data leaves the device. A
+transformation matrix $\mathbf{M}_u \in \mathbb{R}^{n \times n}$ is
+constructed deterministically from key material derived from the user's
+authentication credentials via a Key Derivation Function. The stored
+representation of the profile is
+\begin{equation}
+    \mathbf{y} = \mathbf{M}_u \cdot \mathbf{x}
+\end{equation}
+The matrix $\mathbf{M}_u$ is never persisted; it is recomputed on
+demand from the credentials at authentication time. Profile
+reconstruction on a new device proceeds as
+\begin{equation}
+    \mathbf{x} = \mathbf{M}_u^{-1} \cdot \mathbf{y}
+\end{equation}
+For this reconstruction to be well-defined, $\mathbf{M}_u$ must be
+invertible. This is enforced by construction: the KDF output seeds a
+deterministic pseudorandom generator that produces a full-rank matrix.
+The obfuscated vector $\mathbf{y}$ is subsequently encrypted before
+storage as described in Section~\ref{sec:crypto}.
+
+\subsection{Cryptographic Data Protection}
+\label{sec:crypto}
+
+The system employs a two-layer key hierarchy to protect stored data. A
+Data Encryption Key (DEK) is generated per user as a cryptographically
+random symmetric key. The obfuscated profile vector $\mathbf{y}$ is
+encrypted under AES-256-GCM using the DEK:
+\begin{equation}
+    C_{\mathbf{y}} =
+    \mathrm{Enc}_{\mathrm{AES\text{-}256\text{-}GCM}}(\mathrm{DEK},\;\mathbf{y})
+\end{equation}
+The DEK is itself encrypted under a Key Encryption Key (KEK) derived
+from the user's password and a random salt via Argon2id:
+\begin{equation}
+    \mathrm{KEK} = \mathrm{KDF}_{\mathrm{Argon2id}}(\mathrm{password},\;\mathrm{salt})
+\end{equation}
+\begin{equation}
+    C_{\mathrm{DEK}} =
+    \mathrm{Enc}_{\mathrm{AES\text{-}256\text{-}GCM}}(\mathrm{KEK},\;\mathrm{DEK})
+\end{equation}
+Only $C_{\mathbf{y}}$ and $C_{\mathrm{DEK}}$ are stored in the
+database alongside the salt. The password and plaintext DEK are never
+persisted. At authentication, the KEK is recomputed from the submitted
+password and the stored salt, the DEK is decrypted transiently in
+memory, and the profile is decrypted for use. On devices equipped with
+hardware-backed secure storage such as Apple Secure Enclave, Android
+StrongBox, or a Trusted Platform Module, the KEK or DEK may
+alternatively be bound to hardware-attested key material, providing an
+additional layer of protection against software-level extraction.
+
+
+% ---------------------------------------------------------------
+\section{Implementation}
+% ---------------------------------------------------------------
+
+\subsection{Mobile Application}
+
+The mobile application was implemented in TypeScript using the React
+Native framework, targeting both Android and iOS platforms from a
+shared codebase. The onboarding module presents the ASD sensitivity
+questionnaire across three sequential screens covering noise tolerance,
+light sensitivity, crowd response, routine disruption susceptibility,
+and transition difficulty. Responses are normalized and concatenated to
+form the local profile vector $\mathbf{x}$ as defined in~(1). This
+vector is stored exclusively on device in encrypted form and is never
+transmitted in plaintext.
+
+The on-device inference model was implemented using PyTorch. The model
+takes the composite feature vector $\mathbf{z}$ as input and outputs a
+scalar discomfort probability $d$. Heart rate data is acquired over
+Bluetooth from a paired smartwatch. Ambient noise level is sampled from
+the device microphone and processed locally. Location context, crowd
+density estimates, and weather data are retrieved from contextual APIs
+and fused with physiological signals at inference time. The application
+dashboard presents the current predicted state and issues alerts when
+$d$ exceeds a configurable threshold.
+
+\subsection{Backend Server}
+
+The central backend server was implemented in TypeScript using the
+Node.js runtime with an Express HTTP framework. It exposes a REST API
+consumed by both mobile clients and the cloud ML service. The database
+layer uses PostgreSQL; only encrypted profile ciphertexts
+$C_{\mathbf{y}}$, encrypted DEKs $C_{\mathrm{DEK}}$, and KDF salts are
+persisted for each user account. No plaintext personal or behavioral
+data is stored server-side at any point.
+
+User authentication is implemented over HTTPS with token-based session
+management. At login, the submitted password is used to recompute the
+KEK via Argon2id with the stored salt, the DEK is decrypted transiently
+in memory, and a session token is issued. The profile decryption and
+obfuscation inversion are completed on the client after the encrypted
+blob is returned from the server.
+
+\subsection{MEC Nodes and Environment Simulation}
+
+Each MEC node is deployed as a containerized microservices stack
+orchestrated with Docker and Docker Compose. The stack comprises three
+containers: \texttt{mec-mosquitto}, an Eclipse Mosquitto MQTT broker
+responsible for message routing; \texttt{mec-api}, a FastAPI service
+managing control logic, environmental context, and client
+communication; and \texttt{mec-fl}, the federated aggregation service
+implementing FedAvg in NumPy.
+
+Real-time communication between devices and MEC nodes uses MQTT across
+a structured topic hierarchy. The topic \texttt{tsa/prediction} carries
+risk scores and zone identifiers. The topic \texttt{tsa/fl/update}
+carries local model weights and sample sizes submitted by devices for
+aggregation. The topic \texttt{tsa/context/*} supports bidirectional
+environmental data exchange. The topic
+\texttt{tsa/recommendation/\{id\}} delivers personalized routing advice
+to individual clients.
+
+A key implementation constraint addressed in the \texttt{mec-fl}
+service is the serialization of multi-dimensional neural network weight
+tensors into flat JSON lists for transport over MQTT, which are
+reconstructed into tensors at the MEC node prior to aggregation. The
+FedAvg computation defined in~(7) is executed by \texttt{mec-fl} using
+NumPy upon receipt of a sufficient number of client updates per round.
+
+Since physical sensor infrastructure was not available for evaluation,
+a Station Controller module was developed to simulate real-time
+environmental conditions at transit stations. This simulator generates
+synthetic streams of noise level, crowd density, and service delay
+measurements published to the \texttt{tsa/context/*} MQTT topics and
+consumed by MEC node services and mobile clients subscribed to their
+current location.
+
+\subsection{Federated Learning Prototype and Cloud Coordination}
+
+A standalone federated learning prototype was implemented in Python
+using PyTorch and Flower to validate the privacy-preserving learning
+workflow independently of the deployed MEC stack. Three model roles
+were implemented. The first is \texttt{PhoneModel}, trained locally on
+each simulated device using private synthetic data representing
+mobility-related and sensory-related preferences. The second is
+\texttt{GlobalModel}, which shares the same architecture as
+\texttt{PhoneModel} and is aggregated by the Flower server via FedAvg.
+The third is \texttt{MECModel}, a lightweight edge model designed to
+operate on non-identifying aggregate summaries rather than raw user
+profiles.
+
+On the client side, the Flower \texttt{NumPyClient} interface implements
+local training, parameter clipping, Gaussian noise injection as defined
+in~(6), and submission of protected weights to the server. Only coarse
+training metrics are exposed to the server; no user identifier or raw
+questionnaire value is transmitted. The server coordinates aggregation
+rounds using the \texttt{FedAvg} strategy and updates the global model
+without accessing any private local dataset. The \texttt{MECModel} is
+not yet integrated into the Flower aggregation loop; it establishes the
+code structure required for future edge-side learning and local
+decision support. Current training data is synthetic, defining the
+input feature structure required for future integration with the mobile
+application onboarding questionnaire.
+
+The full system coordinates three execution environments
+simultaneously: TypeScript on mobile clients and the backend server,
+Python on MEC nodes and the cloud ML service, and PyTorch on device for
+local inference. Inter-service communication uses MQTT for low-latency
+sensor event distribution and HTTPS REST for user account operations
+and upstream model weight exchange.
+
+
+% ---------------------------------------------------------------
+\section{Evaluation and Results}
+
+\subsection{Federated Learning Prototype Evaluation}
+
+The federated learning prototype was evaluated locally using Flower's
+simulation runtime. The objective of this evaluation was not to measure
+final predictive performance on a real ASD mobility dataset, which was
+not yet available, but to validate the execution of the complete
+privacy-preserving training pipeline. The experiment verified that
+simulated phone clients can train locally, protect their model updates,
+transmit only perturbed parameters, and contribute to a global FedAvg
+aggregation round.
+
+Due to local memory constraints in the WSL execution environment, the
+simulation was configured with two virtual supernodes. At each round,
+one client was sampled for local training and evaluation. The server was
+configured for three federated rounds, one local epoch per client, a
+clipping norm of $C=1.0$, and Gaussian update noise with standard
+deviation $\sigma=0.01$. The round timeout was increased to 120 seconds
+to account for the overhead of the Flower and Ray simulation backend.
+
+\begin{table}[ht]
+    \centering
+    \scriptsize
+    \renewcommand{\arraystretch}{1.2}
+    \begin{tabular}{ccc}
+        \toprule
+        \textbf{Round} & \textbf{Distributed Loss} & \textbf{Client Failures} \\
+        \midrule
+        1 & 0.7357 & 0 \\
+        2 & 0.6883 & 0 \\
+        3 & 0.6765 & 0 \\
+        \bottomrule
+    \end{tabular}
+    \caption{Federated learning simulation results over three rounds.}
+    \label{tab:fl_results}
+\end{table}
+
+As shown in Table~\ref{tab:fl_results}, the distributed loss decreases
+across the three rounds, from 0.7357 to 0.6765. This confirms that the
+global model receives useful information from local client updates and
+that the FedAvg aggregation loop executes correctly. No client failures
+were observed in the final stabilized configuration. The experiment
+therefore validates the functional feasibility of the federated
+learning workflow in the proposed architecture.
+
+The evaluation also confirmed the privacy-preserving data flow of the
+prototype. Raw synthetic user records remained local to each simulated
+phone client. The server received only clipped and noised model
+parameters, together with coarse training metrics. This behavior is
+consistent with the system objective of avoiding centralised exposure
+of sensitive ASD-related mobility profiles.
+
+% ---------------------------------------------------------------
+\section{Discussion}
+\subsection{Limitations of the Federated Learning Prototype}
+
+The current federated learning evaluation remains preliminary. First,
+the dataset used in the prototype is synthetic and only approximates the
+structure of future ASD mobility features. It is sufficient to validate
+the software pipeline, but not to draw conclusions about real-world
+prediction accuracy. Second, the differential privacy mechanism is
+implemented as clipping and Gaussian noise injection, but no formal
+privacy budget $(\varepsilon, \delta)$ has yet been calibrated. Third,
+the MEC model is currently evaluated separately from the Flower
+aggregation loop. Future work should integrate MEC-level aggregation
+directly into the hierarchical Cloud--MEC--Device workflow described in Section~\ref{sec:architecture}.
+
+Despite these limitations, the prototype demonstrates that the proposed
+architecture can support local training, protected update transmission,
+and server-side aggregation without collecting raw user data.
+
+% ---------------------------------------------------------------
+\section{Conclusion}
+% ---------------------------------------------------------------
+
+[To be completed.]
+
+
+% ---------------------------------------------------------------
+\bibliographystyle{IEEEtran}
+\begin{thebibliography}{1}
+
+\bibitem{maclennan2023}
+K.~MacLennan et al., ``Sensory Experiences in Public Spaces: A
+Qualitative Study,'' \textit{Autism}, vol.~27, no.~4, 2023.
+
+\bibitem{mirri2019}
+S.~Mirri, C.~Prandi, and P.~Salomoni, ``How do sensory features of
+places impact on spatial exploration of people with autism? A user
+study,'' \textit{Information Technology and Tourism}, vol.~20,
+pp.~1--18, 2019.
+
+\bibitem{garroussi2025}
+H.~Garroussi et al., ``A systematic review of data privacy in
+Mobility-as-a-Service (MaaS),'' \textit{Transportation Research
+Interdisciplinary Perspectives}, 2025.
+
+\bibitem{beck2025}
+S.~J.~Beck et al., ``Guidelines for the Creation of Accessible Consent
+Materials and Procedures,'' \textit{Autism in Adulthood}, 2025.
+
+\bibitem{adnan2022}
+N.~Adnan et al., ``Federated Learning with Differential Privacy for
+Medical Data,'' \textit{Scientific Reports}, vol.~12, no.~1, 2022.
+
+\bibitem{alwarafy2020}
+A.~Alwarafy, K.~A.~Al-Thelaya, M.~Abdallah, J.~Schneider, and
+M.~Hamdi, ``A survey on security and privacy issues in edge computing
+assisted Internet of Things,'' \textit{IEEE Internet of Things
+Journal}, vol.~8, no.~6, pp.~4004--4022, 2020.
+
+\end{thebibliography}
+
+\end{document}
